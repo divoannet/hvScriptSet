@@ -1,0 +1,1012 @@
+"use strict";
+
+/**
+ * hvScriptSet
+ * Version: 1.0.5
+ * Author: Человек-Шаман
+ * license: MIT
+ *
+ * Что нового:
+ * 1. Поправлена вёрстка диалога маски
+ * 2. Minor bug-fix
+ * 3. Администратор при входе в тему получает сообщение о недопустимых
+ *    тегах в маске
+ * 4. Теги масок не срабатывают из блока [code]
+ * 5. Кнопка маски работает на страницах предпросмотра/ответа/правки сообщения
+ *
+ */
+
+let hvScriptSet = {
+    addMask: function (opt) {
+
+        let changeList = {
+            'author': {
+                title: 'Ник',
+                description: 'Только текст',
+                tag: 'nick,nic',
+                class: 'pa-author',
+                type: 'link'
+            },
+            'title': {
+                title: 'Статус',
+                description: 'Только текст',
+                tag: 'status,sta',
+                class: 'pa-title',
+                type: 'text'
+            },
+            'avatar': {
+                title: 'Аватар',
+                description: 'Прямая ссылка на картинку формата jpg, gif или png',
+                tag: 'icon,ava',
+                class: 'pa-avatar',
+                type: 'avatar'
+            },
+            'signature': {
+                title: 'Подпись',
+                description: 'Принимает bb-коды, кроме таблицы',
+                tag: 'sign,sgn',
+                class: 'post-sig',
+                type: 'signature'
+            }
+        };
+        if (opt.changeList) {
+            for (let key in opt.changeList) {
+                if (opt.changeList.hasOwnProperty(key)) {
+                    if (changeList[key]) {
+                        for (let i in changeList[key]) {
+                            if (opt.changeList[key][i]) {
+                                changeList[key][i] = opt.changeList[key][i];
+                            }
+                        }
+                    } else {
+                        changeList[key] = opt.changeList[key];
+                        if (!opt.changeList[key].type) {
+                            changeList[key].type = 'html';
+                        }
+                    }
+                }
+            }
+        }
+
+        let tmpMask = {};
+        let previewForm = {};
+        let errorList = {};
+
+        let userFields = opt.userFields ? opt.userFields : ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
+            'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
+        let allTagsList = getTagList();
+
+        let defaultAvatar = opt.defaultAvatar ? opt.defaultAvatar : 'http://i.imgur.com/bQuC3S1.png';
+
+        let prevMasks = getStorageMask() !== '' ? getStorageMask().split('|splitKey|') : [];
+
+        let posts = [];
+
+        function getPosts() {
+            posts = document.querySelectorAll('.post');
+            let changedPosts = {};
+            let changedUsersId = [];
+            for (let i = 0; i < posts.length; i++) {
+                let postEl = posts[i].querySelector('.post-content');
+                let postId = posts[i].getAttribute('id');
+                let postProfile = posts[i].querySelector('.post-author ul');
+                let postText = postEl.innerHTML;
+                let postSignature = posts[i].querySelector('.post-sig dd');
+                let postChangeList = getTags(postText);
+                let userId = postProfile.querySelector('.pa-author a') ?
+                    posts[i].querySelector('a[href*="/profile.php"]').href.split('=')[1] : '1';
+
+                if (Object.keys(postChangeList).length !== 0) {
+                    changedPosts[i] = {
+                        postId: postId,
+                        userId: userId,
+                        text: postEl,
+                        clearedText: getClearedPost(postEl, postChangeList),
+                        profile: postProfile,
+                        changeList: postChangeList,
+                        signature: postSignature
+                    };
+                    if (!(changedUsersId.indexOf(userId) + 1)) {
+                        changedUsersId.push(userId);
+                    }
+                }
+            }
+            let checkAccess = changedUsersId.length > 0 ? getAccess(changedUsersId) : {};
+            for (let _i in changedPosts) {
+                if (changedPosts.hasOwnProperty(_i)) {
+                    changedPosts[_i].username = checkAccess[changedPosts[_i].userId].username;
+                    changedPosts[_i].groupId = checkAccess[changedPosts[_i].userId].groupId;
+                    changedPosts[_i].groupTitle = checkAccess[changedPosts[_i].userId].groupTitle;
+                    changedPosts[_i].access = checkAccess[changedPosts[_i].userId].access;
+
+                    if (changedPosts[_i].changeList.avatar && changedPosts[_i].access.common) {
+                        if (!changedPosts[_i].profile.querySelector('.pa-avatar img')) {
+                            let fieldIndex = userFields.indexOf('pa-avatar');
+                            let block = document.createElement('li');
+                            block.className = 'pa-avatar';
+                            block.innerHTML = '<img src="">';
+                            for (let index = ++fieldIndex; index <= userFields.length; index++) {
+                                let nextSibling = changedPosts[_i].profile.querySelector('.' + userFields[index]);
+                                if (nextSibling) {
+                                    changedPosts[_i].profile.insertBefore(block, nextSibling);
+                                    break;
+                                }
+                                if (index == userFields.length) {
+                                    changedPosts[_i].profile.appendChild(block);
+                                }
+                            }
+                        }
+                        let avatar = changedPosts[_i].profile.querySelector('.pa-avatar img');
+                        avatar.src = changedPosts[_i].changeList.avatar.content;
+                        avatar.removeAttribute('width');
+                        avatar.removeAttribute('height');
+                    }
+                }
+                if (changedPosts.hasOwnProperty(_i) && changedPosts[_i].access.extended) {
+                    let thisChanges = changedPosts[_i].changeList;
+                    for (let change in thisChanges) {
+                        if (thisChanges.hasOwnProperty(change)) {
+                            if (thisChanges[change].field == 'pa-author' && changedPosts[_i].userId == '1') {
+                                changedPosts[_i].changeList[change].type = 'text';
+                            }
+                            if (!changedPosts[_i].profile.getElementsByClassName(changedPosts[_i]
+                                    .changeList[change].field)[0]) {
+                                let _fieldIndex = userFields.indexOf(changedPosts[_i].changeList[change].field);
+                                let _block = document.createElement('li');
+                                _block.className = thisChanges[change].field;
+                                for (let _index = ++_fieldIndex; _index <= userFields.length; _index++) {
+                                    let _nextSibling = changedPosts[_i].profile.querySelector('.' + userFields[_index]);
+                                    if (_nextSibling) {
+                                        changedPosts[_i].profile.insertBefore(_block, _nextSibling);
+                                        break;
+                                    }
+                                    if (_index == userFields.length) {
+                                        changedPosts[_i].profile.appendChild(_block);
+                                    }
+                                }
+                            }
+                            let fieldEl = changedPosts[_i].profile.getElementsByClassName(changedPosts[_i]
+                                .changeList[change].field)[0];
+                            switch (changedPosts[_i].changeList[change].type) {
+                                case 'html':
+                                {
+                                    let content = strToHtml(changedPosts[_i].changeList[change].content);
+                                    if (content === '') {
+                                        console.error('Что-то не так с маской в посте #' + changedPosts[_i].postId);
+                                        if (GroupID === 1 || GroupID === 2) {
+                                            let errorMess = document.getElementById('admin_msg1');
+                                            errorMess.innerHTML = 'Что-то не так с маской в посте #' +
+                                                changedPosts[_i].postId + '. Он подсвечен красным.<br>' +
+                                                '<i>Сообщение показано только администрации.</i>';
+                                            errorMess.style.display = 'block';
+                                            errorMess.style.zIndex = 10000;
+                                            document.getElementById(changedPosts[_i].postId)
+                                                .style.border = 'solid 1px #f00';
+                                        }
+                                    }
+
+                                    fieldEl.innerHTML = content.length > 255 ? content.slice(0, 255) : content;
+                                }
+                                    break;
+                                case 'text':
+                                {
+                                    let _content = changedPosts[_i].changeList[change].content;
+                                    if (change === 'author') {
+                                        fieldEl.innerText = _content.length > 25 ? _content.slice(0, 25) : _content;
+                                    } else if (change === 'title') {
+                                        fieldEl.innerText = _content.length > 50 ? _content.slice(0, 50) : _content;
+                                    } else {
+                                        fieldEl.innerText = _content.length > 255 ? _content.slice(0, 255) : _content;
+                                    }
+                                }
+                                    break;
+                                case 'link':
+                                    fieldEl.querySelector('a').innerText =
+                                        changedPosts[_i].changeList[change].content.length > 25 ?
+                                            changedPosts[_i].changeList[change].content.slice(0, 25) :
+                                            changedPosts[_i].changeList[change].content;
+                                    break;
+                                case 'signature':
+                                    if (UserID !== '1') {
+                                        if (!changedPosts[_i].signature) {
+                                            let signEl = document.createElement('dl');
+                                            signEl.className = 'post-sig';
+                                            signEl.innerHTML = '<dl class="post-sig"><dt><span>Подпись автора</span>' +
+                                                '</dt><dd></dd></dl>';
+                                            changedPosts[_i].text.appendChild(signEl);
+                                            changedPosts[_i].signature = signEl.querySelector('.post-sig dd');
+                                        }
+                                        changedPosts[_i].signature.innerHTML = changedPosts[_i].changeList[change].content;
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+                }
+
+                changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText;
+            }
+        }
+
+        function hideTags() {
+            posts = document.querySelectorAll('.post');
+            for (let i in posts) {
+                if (posts.hasOwnProperty(i)) {
+                    let text = posts[i].querySelector('.post-content');
+                    for (let tag in allTagsList) {
+                        if (allTagsList.hasOwnProperty(tag)) {
+                            let pattern =
+                                new RegExp('\\[' + allTagsList[tag] + '\\](.*?)\\[\/' + allTagsList[tag] + '\\]', 'gi');
+                            text.innerHTML = text.innerHTML.replace(pattern, '');
+                        }
+                    }
+                }
+            }
+        }
+
+        function hidePreviewTags() {
+            let text = document.querySelector('.post-content');
+            for (let tag in allTagsList) {
+                if (allTagsList.hasOwnProperty(tag)) {
+                    let pattern =
+                        new RegExp('\\[' + allTagsList[tag] + '\\](.*?)\\[\/' + allTagsList[tag] + '\\]', 'gi');
+                    text.innerHTML = text.innerHTML.replace(pattern, '');
+                }
+            }
+        }
+
+        function getTags(text) {
+            let postChangeList = {};
+            let clearedText = text.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'');
+            for (let field in changeList) {
+                if (changeList.hasOwnProperty(field)) {
+                    let tags = changeList[field].tag.split(',');
+                    for (let i = tags.length; i >= 0; i--) {
+                        if (tags.hasOwnProperty(i)) {
+                            let pattern = new RegExp('\\[' + tags[i] + '\\](.*?)\\[\\/' + tags[i] + '\\]', 'gi');
+                            let clearPattern = new RegExp('\\[(\\/?)' + tags[i] + '\\]', 'gi');
+                            if (clearedText.match(pattern)) {
+                                postChangeList[field] = {
+                                    'tag': tags[i],
+                                    'field': changeList[field].class,
+                                    'content': text.match(pattern)[0].replace(clearPattern, ''),
+                                    'type': changeList[field].type
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return postChangeList;
+        }
+
+        function getTagList() {
+            let tagList = [];
+            for (let field in changeList) {
+                if (changeList.hasOwnProperty(field)) {
+                    let tags = changeList[field].tag.split(',');
+                    for (let i in tags) {
+                        if (tags.hasOwnProperty(i) && !tagList.indexOf(tags[i]) + 1) {
+                            tagList.push(tags[i]);
+                        }
+                    }
+                }
+            }
+            return tagList;
+        }
+
+        function getAccess(usersId) {
+            let userInfo = getUsersInfo(usersId);
+            for (let id in userInfo) {
+                if (userInfo.hasOwnProperty(id)) {
+                    if (userInfo[id].groupId == 1 || userInfo[id].groupId == 2) {
+                        userInfo[id].access = {
+                            'common': true,
+                            'extended': true
+                        };
+                    } else if (userInfo[id].groupId == 3) {
+                        userInfo[id].access = {
+                            'common': opt.guestAccess ?
+                                Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false,
+                            'extended': opt.guestAccess ?
+                                Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false
+                        };
+                    } else {
+                        userInfo[id].access = {
+                            'common': opt.forumAccess && opt.forumAccess[FORUM.topic.forum_name] ?
+                                Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(userInfo[id].groupTitle) + 1) :
+                                true,
+                            'extended': opt.forumAccessExtended && opt.forumAccessExtended[FORUM.topic.forum_name] ?
+                                Boolean(opt.forumAccessExtended[FORUM.topic.forum_name]
+                                        .indexOf(userInfo[id].groupTitle) + 1) : false
+                        };
+                    }
+                }
+            }
+            return userInfo;
+        }
+
+        function getUsersInfo(usersId) {
+            let usersIdStr = usersId.join(',');
+            let usersInfo = {};
+            if (usersId.indexOf('1') + 1) {
+                usersInfo['1'] = {
+                    'userId': '1',
+                    'username': 'Guest',
+                    'groupId': '3',
+                    'groupTitle': 'Гость'
+                };
+            }
+            $.ajax({
+                async: false,
+                url: '/api.php?method=users.get&user_id=' + usersIdStr,
+                success: function success(json) {
+                    for (let i in json.response.users) {
+                        if (json.response.users.hasOwnProperty(i)) {
+                            usersInfo[json.response.users[i].user_id] = {
+                                'userId': i,
+                                'username': json.response.users[i].username,
+                                'groupId': json.response.users[i].group_id,
+                                'groupTitle': json.response.users[i].group_title
+                            };
+                        }
+                    }
+                }
+            });
+
+            return usersInfo;
+        }
+
+        function getDialog() {
+            let maskButton = addButton();
+            if (maskButton) {
+                if (checkAccessExtended() || getAccessByForumName() === 'extended') {
+                    maskButton.addEventListener('click', event => {
+                        if (event.ctrlKey) {
+                            insertAvatarTags();
+                        } else {
+                            callMaskDialog();
+                        }
+                    });
+                } else {
+                    maskButton.addEventListener('click', insertAvatarTags);
+                }
+            }
+            let maskDialog = buildMaskDialog();
+            let main = document.querySelector('#pun-main');
+            main.appendChild(maskDialog);
+
+            getStyle();
+        }
+
+        function getStyle() {
+            let style = document.createElement('style');
+            style.innerHTML = '#mask_dialog .bg { position: fixed;display: flex;align-content: center;justify-content: center;align-items: center;z-index: 10;width: 100%;height: 100%;left: 0;top: 0;background: rgba(0,0,0,.4);cursor: pointer;}\n' +
+                '#mask_dialog .inner {cursor:default;margin: 0;width: 760px;max-width:99%;max-height: 90%;overflow-x: auto;z-index: 100;box-shadow: 0 0 40px #222;background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");padding: 8px;}\n' +
+                '#mask_dialog .inner * {box-sizing: border-box;}\n' +
+                '#mask_dialog .inner .mask-dialog-title {text-align: center;font-weight: 700;font-size: 18px;line-height: 34px;}\n' +
+                '#mask_dialog .inner .error-list {padding: 8px;margin: 8px;background: #DAA396;color: #BD0909;border: solid 1px;}\n' +
+                '#mask_dialog .inner .mask-block {display: flex;justify-content: space-between;align-items: stretch;}\n' +
+                '#mask_dialog .inner .mask-block .preview-block {flex: 0 0 120px;text-align: center;max-width: 120px;overflow: hidden;word-break: break-word;}\n' +
+                '#mask_dialog .inner .mask-block .preview-block > div {padding: 3px 0;}#mask_dialog .inner .mask-block .form-block {flex: 1 1 auto;}\n' +
+                '#mask_dialog .inner .mask-block .preview-block .preview-avatar img {max-width:100px;}\n' +
+                '#mask_dialog .inner .mask-block .form-block {flex: 1 1 auto;}\n' +
+                '#mask_dialog .inner .mask-block .form-block label {display: block;margin-bottom:px;}\n' +
+                '#mask_dialog .inner .mask-block .form-block label:after {content: "";display: table;clear: both;margin-bottom: 2px;}\n' +
+                '#mask_dialog .inner .mask-block .form-block .description {font-size: .9em;color: #999;font-style: italic;}\n' +
+                '#mask_dialog .inner .mask-block .form-block .add-template {cursor: pointer;float:right;padding: 2px 4px;border: solid 1px #ccc;}\n' +
+                '#mask_dialog .inner .mask-block .form-block input,#mask_dialog .inner .mask-block .form-block textarea {width: 100%;}\n' +
+                '#mask_dialog .inner .mask-block .form-block .mask-field {position: relative;}\n' +
+                '#mask_dialog .inner .mask-block .form-block .mask-field + .mask-field {margin-top: 10px;}\n' +
+                '#mask_dialog .inner .masks-storage {flex: 0 1 140px;display: flex;align-items:flex-start;align-content: flex-start;justify-content: flex-start;padding: 8px;flex-wrap: wrap;list-style: none;}\n' +
+                '#mask_dialog .inner .masks-storage.hidden  {display:none;}\n' +
+                '#mask_dialog .inner .masks-storage .mask-element {width: 60px;padding: 4px;position: relative;}\n' +
+                '#mask_dialog .inner .masks-storage .mask-element img {max-width: 100%;cursor:pointer;}\n' +
+                '#mask_dialog .inner .masks-storage .mask-element .mask-tooltip {position: absolute;top: 4px;min-width: 160px;right: 60px;padding:4px;z-index:5;overflow-y: auto;background: rgba(255,255,255,.6);border: solid 1px #ccc;display: none;}\n' +
+                '#mask_dialog .inner .masks-storage .mask-element > img:hover + .mask-tooltip {display: block;}\n' +
+                '#mask_dialog .inner .masks-storage .mask-element .mask-tooltip > * {zoom: .7}\n' +
+                '#mask_dialog .inner .masks-storage .mask-element .delete-mask {display: block;font-size: 10px;text-align:center;cursor:pointer;}\n' +
+                '#mask_dialog .inner .control {padding: 8px;text-align: center;}\n' +
+                '#mask_dialog .inner .control input + input {margin-left: 10px;}';
+            let docstyle = document.head.querySelector('link[href*="style"]');
+            document.head.insertBefore(style, docstyle);
+        }
+
+        function insertAvatarTags() {
+            let mainReply = document.getElementById('main-reply');
+            mainReply.focus();
+            mainReply.value = mainReply.value + '[icon][/icon]';
+            setSelectionRange(mainReply, mainReply.value.length - 7, mainReply.value.length - 7);
+        }
+
+        function setSelectionRange(input, selectionStart, selectionEnd) {
+            if (input.setSelectionRange) {
+                input.focus();
+                input.setSelectionRange(selectionStart, selectionEnd);
+            } else if (input.createTextRange) {
+                let range = input.createTextRange();
+                range.collapse(true);
+                range.moveEnd('character', selectionEnd);
+                range.moveStart('character', selectionStart);
+                range.select();
+            }
+        }
+
+        function setCaretToPos(input, pos) {
+            setSelectionRange(input, pos, pos);
+        }
+
+        function changeMaskForm(field, value) {
+            let str = '';
+            switch (field) {
+                case 'signature':
+                    break;
+                case 'avatar':
+                    str = value !== '' ? value : getAvatar();
+                    if (!checkImage(str)) {
+                        errorList[field] = 'В поле [Аватар] должна быть ссылка на картинку формата jpg, gif или png';
+                    } else {
+                        delete errorList[field];
+                        previewForm.querySelector('.preview-' + field + ' img').src = str;
+                    }
+                    break;
+                case 'author':
+                    if (value.length > 25) {
+                        errorList[field] = 'Поле [Ник] не должно содержать больше 25 символов';
+                    } else {
+                        str = value !== '' ? value : UserLogin;
+                        delete errorList[field];
+                        previewForm.querySelector('.preview-' + field).innerText = str;
+                    }
+                    break;
+                case 'title':
+                    if (value.length > 50) {
+                        errorList[field] = 'Поле [Статус] не должно содержать больше 50 символов';
+                    } else {
+                        delete errorList[field];
+                        str = value !== '' ? value : getUserTitle();
+                        previewForm.querySelector('.preview-' + field).innerText = str;
+                    }
+                    break;
+                default:
+                    if (value.length > 255) {
+                        errorList[field] = 'Поле [' + changeList[field].title + '] не должно содержать больше 255 символов';
+                    } else {
+                        delete errorList[field];
+                        str = value !== '' ? value : '';
+                        if (checkHtml(str)) {
+                            errorList[field] = 'В поле [' + changeList[field].title + '] недопустимые теги';
+                        } else {
+                            delete errorList[field];
+                            previewForm.querySelector('.preview-' + field).innerHTML = str;
+                        }
+                    }
+                    break;
+            }
+            showErrors();
+        }
+
+        function showErrors() {
+            let errorListBlock = document.querySelector('#mask_dialog .error-list');
+            errorListBlock.innerHTML = '';
+            if (Object.keys(errorList).length) {
+                errorListBlock.style.display = 'block';
+                for (let error in errorList) {
+                    if (errorList.hasOwnProperty(error)) {
+                        let li = document.createElement('li');
+                        li.innerHTML = '<li> ! ' + errorList[error] + '</li>';
+                        errorListBlock.appendChild(li);
+                    }
+                }
+            } else {
+                errorListBlock.style.display = 'none';
+            }
+        }
+
+        function fillForm(obj) {
+            let form = document.querySelector('#mask_form');
+            for (let change in changeList) {
+                if (changeList.hasOwnProperty(change)) {
+                    let field = form.querySelector('#mask_' + change);
+                    if (obj[change]) {
+                        field.value = obj[change].value;
+                        tmpMask[change] = {
+                            'tag': obj[change].tag,
+                            'value': obj[change].value
+                        };
+                        changeMaskForm(change, obj[change].value);
+                    } else {
+                        field.value = '';
+                        delete tmpMask[change];
+                        changeMaskForm(change, '');
+                    }
+                }
+            }
+        }
+
+        function getAvatar() {
+            return UserAvatar ? UserAvatar : defaultAvatar;
+        }
+
+        function getUserTitle() {
+            return UserTitle ? UserTitle : 'Статус';
+        }
+
+        function addButton() {
+            let form = document.getElementById("form-buttons");
+            if (form && (checkAccess() || checkAccessExtended())) {
+                let button = document.createElement('td');
+                button.id = 'button-mask';
+                button.title = 'Маска профиля';
+                button.innerHTML = '<img src="/i/blank.gif">';
+                let bgImage = opt.buttonImage ? opt.buttonImage : 'http://i.imgur.com/ONu0llO.png';
+                button.style.backgroundImage = 'url("' + bgImage + '")';
+                form.getElementsByTagName('tr')[0].appendChild(button);
+                return button;
+            } else {
+                return null;
+            }
+        }
+
+        function callMaskDialog() {
+            let maskDialog = document.getElementById('mask_dialog');
+            maskDialog.style.display = 'block';
+            getMaskStorage(prevMasks);
+        }
+
+        function hideMaskDialog() {
+            let maskDialog = document.getElementById('mask_dialog');
+            maskDialog.style.display = 'none';
+        }
+
+        function buildMaskDialog() {
+            let code = document.createElement('div');
+            code.id = 'mask_dialog';
+            code.style.display = 'none';
+
+            let bg = document.createElement('div');
+            bg.className = 'bg';
+
+            bg.addEventListener('click', event => {
+                if (event.target === bg) {
+                    hideMaskDialog();
+                }
+            });
+
+            let inner = document.createElement('div');
+            inner.className = 'inner container';
+
+            let title = document.createElement('div');
+            title.className = 'mask-dialog-title';
+            title.innerHTML = 'Маска профиля';
+
+            let errorListBlock = document.createElement('ul');
+            errorListBlock.className = 'error-list';
+            errorListBlock.style.display = 'none';
+
+            let showPreviewFlag = opt.showPreview !== undefined ? opt.showPreview : true;
+
+            let preview = document.createElement('div');
+            previewForm = preview;
+            preview.className = 'preview-block';
+            clearPreview();
+
+            let form = document.createElement('form');
+            form.id = 'mask_form';
+
+            let _loop = function _loop(mask) {
+                if (changeList.hasOwnProperty(mask)) {
+                    (function () {
+                        let li = document.createElement('div');
+                        li.className = 'mask-field ' + mask;
+                        let input = void 0;
+                        if (changeList[mask].type === 'html' || changeList[mask].type === 'signature') {
+                            input = document.createElement('textarea');
+                            input.id = 'mask_' + mask;
+                        } else {
+                            input = document.createElement('input');
+                            input.type = 'text';
+                            input.id = 'mask_' + mask;
+                        }
+                        input.addEventListener('blur', () => {
+                            let idField = input.id.split('mask_')[1];
+                            if (input.value !== '' && !checkHtml(input.value)) {
+                                tmpMask[idField] = {
+                                    'tag': changeList[idField].tag.split(',')[0],
+                                    'value': input.value
+                                };
+                            } else {
+                                delete tmpMask[idField];
+                            }
+                            changeMaskForm(idField, input.value);
+                        });
+                        let label = document.createElement('label');
+                        label.for = 'mask_' + mask;
+
+                        label.innerHTML += '<b>' + changeList[mask].title + '</b>';
+                        if (changeList[mask].description) {
+                            label.innerHTML += '<div class="description">' + changeList[mask].description + '</div>';
+                        }
+                        li.appendChild(label);
+                        if (changeList[mask].defaultCode) {
+                            let templateButton = document.createElement('div');
+                            templateButton.className = 'button add-template';
+                            templateButton.innerText = '« вставить шаблон';
+                            templateButton.title = 'Вставить шаблон';
+                            templateButton.addEventListener('click', function () {
+                                fillInput(input, changeList[mask].defaultCode);
+                                changeMaskForm(mask, input.value);
+                            });
+                            label.insertBefore(templateButton, label.querySelector('b'));
+                        }
+                        li.appendChild(input);
+                        form.appendChild(li);
+                    })();
+                }
+            };
+
+            for (let mask in changeList) {
+                _loop(mask);
+            }
+
+            let formBlock = document.createElement('div');
+            formBlock.className = 'form-block';
+            formBlock.appendChild(form);
+
+            let userMasks = document.createElement('ul');
+            userMasks.className = 'masks-storage';
+            if (prevMasks.length > 0) {
+            } else {
+                userMasks.className += ' hidden';
+            }
+
+            let block = document.createElement('div');
+            block.className = 'mask-block';
+            if (showPreviewFlag) {
+                block.appendChild(preview);
+            }
+            block.appendChild(formBlock);
+            block.appendChild(userMasks);
+
+            let okButton = document.createElement('input');
+            okButton.type = 'button';
+            okButton.className = 'button';
+            okButton.name = 'insertMask';
+            okButton.value = 'Вставить маску';
+            okButton.addEventListener('click', insertMask);
+
+            let clearButton = document.createElement('input');
+            clearButton.type = 'button';
+            clearButton.className = 'button';
+            clearButton.name = 'clearMask';
+            clearButton.value = 'Очистить';
+            clearButton.addEventListener('click', clearMask);
+
+            let cancelButton = document.createElement('input');
+            cancelButton.type = 'button';
+            cancelButton.className = 'button';
+            cancelButton.name = 'cancelMask';
+            cancelButton.value = 'Отмена';
+            cancelButton.addEventListener('click', cancelMask);
+
+            let control = document.createElement('div');
+            control.className = 'control';
+            control.appendChild(okButton);
+            control.appendChild(clearButton);
+            control.appendChild(cancelButton);
+
+            inner.appendChild(title);
+            inner.appendChild(errorListBlock);
+            inner.appendChild(block);
+            inner.appendChild(control);
+
+            code.appendChild(bg);
+            bg.appendChild(inner);
+
+            return code;
+        }
+
+        function getMaskStorage(prevMasks) {
+            let maskDialog = document.getElementById('mask_dialog');
+            let maskStore = maskDialog.querySelector('.masks-storage');
+            if (prevMasks.length > 0) {
+                maskStore.className = maskStore.className.replace(/ hidden/gi, '');
+            } else {
+                maskStore.className += ' hidden';
+            }
+            maskStore.innerHTML = '';
+
+            let _loop2 = function _loop2(mask) {
+                let mymask = JSON.parse(prevMasks[mask]);
+                let li = document.createElement('li');
+                li.className = 'mask-element';
+                let tempavatar = mymask['avatar'] ? mymask['avatar'].value : defaultAvatar;
+                let avatar = document.createElement('img');
+                avatar.src = tempavatar;
+                let infoBlock = document.createElement('div');
+                infoBlock.className = 'mask-tooltip';
+
+                for (let item in changeList) {
+                    if (changeList.hasOwnProperty(item) && item !== 'avatar' && mymask[item]) {
+                        if (!checkHtml(mymask[item].value.toString())) {
+                            infoBlock.innerHTML += '<div class="' + item + '"><b>' + changeList[item].title + ':</b> ' +
+                                mymask[item].value + '</div>';
+                        }
+                    }
+                }
+                let deleteMask = document.createElement('a');
+                deleteMask.className = 'delete-mask';
+                deleteMask.innerText = 'Удалить';
+                deleteMask.title = 'Удалить маску из списка';
+                deleteMask.addEventListener('click', () => deleteMaskFromStorage(mask));
+                li.appendChild(avatar);
+                if ((mymask['avatar'] && Object.keys(mymask).length > 1) ||
+                    (!mymask['avatar'] && Object.keys(mymask).length > 0)) {
+                    li.appendChild(infoBlock);
+                }
+                li.appendChild(deleteMask);
+                avatar.addEventListener('click', () => fillForm(mymask));
+                maskStore.appendChild(li);
+            };
+
+            for (let mask = 0; mask < prevMasks.length; mask++) {
+                _loop2(mask);
+            }
+        }
+
+        function fillInput(input, value) {
+            input.value = value;
+        }
+
+        function insertMask() {
+            if (Object.keys(tmpMask).length > 0) {
+                let mainReply = document.getElementById('main-reply');
+                mainReply.value = mainReply.value + getStrMask();
+                let tempMask = JSON.stringify(tmpMask);
+                if (Object.keys(prevMasks).length > 0) {
+                    prevMasks = getStorageMask().split('|splitKey|');
+                    if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
+                        if (prevMasks.length > 5) {
+                            prevMasks.splice(0, 1);
+                        }
+                    } else {
+                        prevMasks.splice(hasMaskInSrorage(prevMasks, tmpMask), 1);
+                    }
+                }
+                prevMasks.push(JSON.stringify(tmpMask));
+                $.ajax({
+                    async: false,
+                    url: '/api.php?method=storage.set&token=' + ForumAPITicket + '&key=maskListUser&value=' +
+                    encodeURI(prevMasks.join('|splitKey|'))
+                });
+                getMaskStorage(prevMasks);
+                clearMask();
+                hideMaskDialog();
+            }
+        }
+
+        function hasMaskInSrorage(storage, item) {
+            let res = -1;
+            for (let i = 0; i < storage.length; i++) {
+                let obj = JSON.parse(storage[i]);
+                if (Object.keys(obj).length === Object.keys(item).length) {
+                    let counter = 0;
+                    for (let k in obj) {
+                        if (obj.hasOwnProperty(k)) {
+                            if (JSON.stringify(obj[k]) !== JSON.stringify(item[k])) {
+                                break;
+                            } else {
+                                counter++;
+                            }
+                        }
+                        if (counter === Object.keys(obj).length) {
+                            res = i;
+                        }
+                    }
+                }
+            }
+            return res;
+        }
+
+        function deleteMaskFromStorage(mask) {
+            prevMasks.splice(mask, 1);
+            $.ajax({
+                async: false,
+                url: '/api.php?method=storage.set&token=' + ForumAPITicket + '&key=maskListUser&value=' +
+                encodeURI(prevMasks.join('|splitKey|'))
+            });
+            getMaskStorage(prevMasks);
+        }
+
+        function clearMask() {
+            tmpMask = {};
+            clearPreview();
+            errorList = {};
+            showErrors();
+            let maskForm = document.getElementById('mask_form');
+            maskForm.reset();
+        }
+
+        function cancelMask() {
+            clearMask();
+            hideMaskDialog();
+        }
+
+        function clearPreview() {
+            previewForm.innerHTML = '';
+            for (let mask in changeList) {
+                if (changeList.hasOwnProperty(mask)) {
+                    let div = document.createElement('div');
+                    div.className = 'preview-' + mask;
+                    switch (mask) {
+                        case 'author':
+                            div.innerHTML = UserLogin;
+                            previewForm.appendChild(div);
+                            break;
+                        case 'title':
+                            div.innerHTML = getUserTitle();
+                            previewForm.appendChild(div);
+                            break;
+                        case 'avatar':
+                            let src = getAvatar();
+                            div.innerHTML = '<img src="' + src + '">';
+                            previewForm.appendChild(div);
+                            break;
+                        case 'signature':
+                            break;
+                        default:
+                            div.innerHTML = '';
+                            previewForm.appendChild(div);
+                            break;
+                    }
+                }
+            }
+        }
+
+        function getStrMask() {
+            let str = '';
+            for (let change in tmpMask) {
+                if (tmpMask.hasOwnProperty(change)) {
+                    str += '[' + tmpMask[change].tag + ']' + tmpMask[change].value + '[/' + tmpMask[change].tag + ']';
+                }
+            }
+            return str;
+        }
+
+        let forbiddenTags = ['input', 'button', 'script', 'iframe', 'frame', 'style', 'audio', 'video', 'form',
+            'footer', 'header', 'head', 'html', 'map', 'select', 'table', 'textarea', 'xmp', 'object', 'embed',
+            'var', 'meta'];
+        let forbiddenEvents = ['onblur', 'onchange', 'onclick', 'ondblclick', 'onfocus', 'onkeydown', 'onkeypress',
+            'onkeyup', 'onload', 'onmousedown', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onreset',
+            'onselect', 'onscroll', 'onsubmit', 'onunload', 'javascript', 'onerror', 'oninput', 'onafterprint',
+            'onbeforeprint', 'onbeforeunload', 'onhashchange', 'onmessage', 'onoffline', 'ononline', 'onpagehide',
+            'onpageshow', 'onpopstate', 'onresize', 'onstorage', 'oncontextmenu', 'oninvalid', 'onreset', 'onsearch',
+            'ondrag', 'ondragend', 'ondragenter', 'ondragleave', 'ondragover', 'ondragstart', 'ondrop', 'onmousedown',
+            'onmousewheel', 'onwheel', 'oncopy', 'oncut', 'onpaste', 'onabort', 'oncanplay', 'oncanplaythrough',
+            'oncuechange', 'ondurationchange', 'onemptied', 'onended', 'onerror', 'onloadeddata', 'onloadedmetadata',
+            'onloadstart', 'onpause', 'onplay', 'onplaying', 'onprogress', 'onratechange', 'onseeked', 'onseeking',
+            'onstalled', 'onsuspend', 'ontimeupdate', 'onvolumechange', 'onwaiting'];
+
+        function strToHtml(str) {
+            let forbiddenTag = '';
+            let forbiddenTagsCheck = false;
+            for (let i = 0; i < forbiddenTags.length; i++) {
+                let pattern = new RegExp('(<|&lt;)?' + forbiddenTags[i]);
+                forbiddenTagsCheck = pattern.exec(str);
+                if (forbiddenTagsCheck) {
+                    forbiddenTag = forbiddenTagsCheck[0].replace('&lt;', '');
+                    console.error('Forbidden tag <' + forbiddenTag + '> in mask');
+                    return '';
+                }
+            }
+            for (let _i2 = 0; _i2 < forbiddenEvents.length; _i2++) {
+                let _pattern = new RegExp(forbiddenEvents[_i2] + '=');
+                forbiddenTagsCheck = _pattern.exec(str);
+                if (forbiddenTagsCheck) {
+                    forbiddenTag = forbiddenTagsCheck[0].replace('&lt;', '');
+                    console.error('Forbidden event <' + forbiddenTag + '> in mask ');
+                    return '';
+                }
+            }
+            let check = /&lt;(.*?)?( xlink:| id=(.*?)?)/.test(str);
+            if (check) {
+                console.error('Forbidden tag properties in mask');
+            }
+            return check ? '' : str.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        }
+
+        function checkHtml(html) {
+            let forbiddenTagsCheck = false;
+            for (let i = 0; i < forbiddenTags.length; i++) {
+                let pattern = new RegExp('(<|&lt;)?' + forbiddenTags[i]);
+                forbiddenTagsCheck = pattern.exec(html);
+                if (forbiddenTagsCheck) return true;
+            }
+            for (let _i3 = 0; _i3 < forbiddenEvents.length; _i3++) {
+                let _pattern2 = new RegExp(forbiddenEvents[_i3] + '=');
+                forbiddenTagsCheck = _pattern2.exec(html);
+                if (forbiddenTagsCheck) return true;
+            }
+            return forbiddenTagsCheck;
+        }
+
+        function checkImage(src) {
+            return (/\.jpg|\.png|\.gif/.test(src)
+            );
+        }
+
+        function checkAccess() {
+            let flag = opt.forumAccess ? opt.forumAccess[FORUM.topic.forum_name] ?
+                Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : true;
+            return flag || GroupID === 1 || GroupID === 2;
+        }
+
+        function checkAccessExtended() {
+            let flag = FORUM.topic ? opt.forumAccessExtended ? opt.forumAccessExtended[FORUM.topic.forum_name] ?
+                Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : false : false;
+            return flag || GroupID === 1 || GroupID === 2;
+        }
+
+        function getStorageMask() {
+            let mask = $.ajax({
+                async: false,
+                url: '/api.php?method=storage.get&key=maskListUser'
+            });
+
+            return JSON.parse(mask.responseText).response &&
+            JSON.parse(mask.responseText).response.storage.data.maskListUser ?
+                decodeURI(JSON.parse(mask.responseText).response.storage.data.maskListUser) : '';
+        }
+
+        function getClearedPost(post, chList) {
+            let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|');
+            let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|');
+
+            for (let ch in chList) {
+                if (chList.hasOwnProperty(ch)) {
+                    let pattern = new RegExp('\\[' + chList[ch].tag + '\\](.*?)\\[\/' + chList[ch].tag + '\\]', 'gi');
+                    text = text.replace(pattern, '');
+                }
+            }
+            for (let i in codeBoxes) {
+                text = text.replace(/\|code-box-replacer\|/i, codeBoxes[i]);
+            }
+            return text;
+        }
+
+        function getAccessByForumName() {
+            let crumbs = document.getElementById('pun-crumbs1');
+            let name = crumbs.innerHTML.match(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi)[0]
+                .replace(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi, '$2');
+            if ((opt.forumAccessExtended && opt.forumAccessExtended[name]) || GroupID === 1 || GroupID === 2) {
+                if (opt.forumAccessExtended[name].indexOf(GroupTitle) + 1) {
+                    return 'exended';
+                }
+            } else if (opt.forumAccess && opt.forumAccess[name]) {
+                if (opt.forumAccess[name].indexOf(GroupTitle) + 1) {
+                    return 'common';
+                }
+            } else if (!opt.forumAccess && UserID !== 1) {
+                return 'common';
+            } else {
+                return 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (FORUM.topic) {
+                getPosts();
+                if (UserID !== 1) {
+                    getDialog();
+                }
+            } else if (!FORUM.topic && FORUM.editor) {
+                if (UserID !== 1) {
+                    getDialog();
+                }
+                hidePreviewTags();
+            } else {
+                hideTags();
+            }
+        });
+    }
+};
