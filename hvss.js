@@ -2,23 +2,18 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.5
+ * Version: 1.0.7
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Поправлена вёрстка диалога маски
- * 2. Minor bug-fix
- * 3. Администратор при входе в тему получает сообщение о недопустимых
- *    тегах в маске
- * 4. Теги масок не срабатывают из блока [code]
- * 5. Кнопка маски работает на страницах предпросмотра/ответа/правки сообщения
+ * 1. Исправлен баг c подписью
  *
  */
 
-let hvScriptSet = {
-    addMask: function (opt) {
+var hvScriptSet =  {
 
+    addMask: function(opt) {
         let changeList = {
             'author': {
                 title: 'Ник',
@@ -93,8 +88,19 @@ let hvScriptSet = {
                 let postText = postEl.innerHTML;
                 let postSignature = posts[i].querySelector('.post-sig dd');
                 let postChangeList = getTags(postText);
-                let userId = postProfile.querySelector('.pa-author a') ?
-                    posts[i].querySelector('a[href*="/profile.php"]').href.split('=')[1] : '1';
+
+                let userId = '1';
+                let postUserNameLink = postProfile.querySelector('.pa-author a');
+
+                if (postUserNameLink) {
+                    if (postUserNameLink.href.indexOf('/profile.php') + 1) {
+                        userId = postUserNameLink.href.split('=')[1];
+                    } else {
+                        let postProfileLinks = posts[i].querySelector('.post-links');
+                        let postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
+                        userId = postProfileUserLink.href.split('=')[1];
+                    }
+                }
 
                 if (Object.keys(postChangeList).length !== 0) {
                     changedPosts[i] = {
@@ -223,8 +229,8 @@ let hvScriptSet = {
                         }
                     }
                 }
-
-                changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText;
+                var sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
+                changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
             }
         }
 
@@ -339,7 +345,11 @@ let hvScriptSet = {
             }
             $.ajax({
                 async: false,
-                url: '/api.php?method=users.get&user_id=' + usersIdStr,
+                url: '/api.php',
+                data: {
+                    method: 'users.get',
+                    user_id: usersIdStr
+                },
                 success: function success(json) {
                     for (let i in json.response.users) {
                         if (json.response.users.hasOwnProperty(i)) {
@@ -363,11 +373,11 @@ let hvScriptSet = {
                 if (checkAccessExtended() || getAccessByForumName() === 'extended') {
                     maskButton.addEventListener('click', event => {
                         if (event.ctrlKey) {
-                            insertAvatarTags();
-                        } else {
-                            callMaskDialog();
-                        }
-                    });
+                        insertAvatarTags();
+                    } else {
+                        callMaskDialog();
+                    }
+                });
                 } else {
                     maskButton.addEventListener('click', insertAvatarTags);
                 }
@@ -384,7 +394,7 @@ let hvScriptSet = {
             style.innerHTML = '#mask_dialog .bg { position: fixed;display: flex;align-content: center;justify-content: center;align-items: center;z-index: 10;width: 100%;height: 100%;left: 0;top: 0;background: rgba(0,0,0,.4);cursor: pointer;}\n' +
                 '#mask_dialog .inner {cursor:default;margin: 0;width: 760px;max-width:99%;max-height: 90%;overflow-x: auto;z-index: 100;box-shadow: 0 0 40px #222;background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");padding: 8px;}\n' +
                 '#mask_dialog .inner * {box-sizing: border-box;}\n' +
-                '#mask_dialog .inner .mask-dialog-title {text-align: center;font-weight: 700;font-size: 18px;line-height: 34px;}\n' +
+                '#mask_dialog .inner .mask-dialog-title {text-align: center;font-weight: 700;font-size: 18px;line-height: 34px;position:relative;}\n' +
                 '#mask_dialog .inner .error-list {padding: 8px;margin: 8px;background: #DAA396;color: #BD0909;border: solid 1px;}\n' +
                 '#mask_dialog .inner .mask-block {display: flex;justify-content: space-between;align-items: stretch;}\n' +
                 '#mask_dialog .inner .mask-block .preview-block {flex: 0 0 120px;text-align: center;max-width: 120px;overflow: hidden;word-break: break-word;}\n' +
@@ -406,8 +416,9 @@ let hvScriptSet = {
                 '#mask_dialog .inner .masks-storage .mask-element > img:hover + .mask-tooltip {display: block;}\n' +
                 '#mask_dialog .inner .masks-storage .mask-element .mask-tooltip > * {zoom: .7}\n' +
                 '#mask_dialog .inner .masks-storage .mask-element .delete-mask {display: block;font-size: 10px;text-align:center;cursor:pointer;}\n' +
-                '#mask_dialog .inner .control {padding: 8px;text-align: center;}\n' +
-                '#mask_dialog .inner .control input + input {margin-left: 10px;}';
+                '#mask_dialog .inner .control {padding: 8px;text-align: center;position:relative;}\n' +
+                '#mask_dialog .inner .control input + input {margin-left: 10px;}' +
+                '#mask_dialog .inner .control .clear-storage {position: absolute;right:0;bottom:0;color:#666;cursor:pointer;}\n';
             let docstyle = document.head.querySelector('link[href*="style"]');
             document.head.insertBefore(style, docstyle);
         }
@@ -569,9 +580,9 @@ let hvScriptSet = {
 
             bg.addEventListener('click', event => {
                 if (event.target === bg) {
-                    hideMaskDialog();
-                }
-            });
+                hideMaskDialog();
+            }
+        });
 
             let inner = document.createElement('div');
             inner.className = 'inner container';
@@ -610,16 +621,16 @@ let hvScriptSet = {
                         }
                         input.addEventListener('blur', () => {
                             let idField = input.id.split('mask_')[1];
-                            if (input.value !== '' && !checkHtml(input.value)) {
-                                tmpMask[idField] = {
-                                    'tag': changeList[idField].tag.split(',')[0],
-                                    'value': input.value
-                                };
-                            } else {
-                                delete tmpMask[idField];
-                            }
-                            changeMaskForm(idField, input.value);
-                        });
+                        if (input.value !== '' && !checkHtml(input.value)) {
+                            tmpMask[idField] = {
+                                'tag': changeList[idField].tag.split(',')[0],
+                                'value': input.value
+                            };
+                        } else {
+                            delete tmpMask[idField];
+                        }
+                        changeMaskForm(idField, input.value);
+                    });
                         let label = document.createElement('label');
                         label.for = 'mask_' + mask;
 
@@ -689,11 +700,19 @@ let hvScriptSet = {
             cancelButton.value = 'Отмена';
             cancelButton.addEventListener('click', cancelMask);
 
+            let clearStorageButton = document.createElement('span');
+            clearStorageButton.className = 'clear-storage';
+            clearStorageButton.name = 'clearStorageMask';
+            clearStorageButton.innerText = 'Очистить хранилище';
+            clearStorageButton.title = 'Сбрасывает все маски. Нажать при проблемах сохранения/отображения сохраненных масок.';
+            clearStorageButton.addEventListener('click', clearStorageMask);
+
             let control = document.createElement('div');
             control.className = 'control';
             control.appendChild(okButton);
             control.appendChild(clearButton);
             control.appendChild(cancelButton);
+            control.appendChild(clearStorageButton);
 
             inner.appendChild(title);
             inner.appendChild(errorListBlock);
@@ -774,11 +793,14 @@ let hvScriptSet = {
                     }
                 }
                 prevMasks.push(JSON.stringify(tmpMask));
-                $.ajax({
-                    async: false,
-                    url: '/api.php?method=storage.set&token=' + ForumAPITicket + '&key=maskListUser&value=' +
-                    encodeURI(prevMasks.join('|splitKey|'))
-                });
+                $.post('/api.php',
+                    {
+                        method: 'storage.set',
+                        token: ForumAPITicket,
+                        key: 'maskListUser',
+                        value: encodeURI(prevMasks.join('|splitKey|'))
+                    }
+                )
                 getMaskStorage(prevMasks);
                 clearMask();
                 hideMaskDialog();
@@ -810,10 +832,27 @@ let hvScriptSet = {
 
         function deleteMaskFromStorage(mask) {
             prevMasks.splice(mask, 1);
+            $.post('/api.php',
+                {
+                    method: 'storage.set',
+                    token: ForumAPITicket,
+                    key: 'maskListUser',
+                    value: encodeURI(prevMasks.join('|splitKey|'))
+                }
+            );
+            getMaskStorage(prevMasks);
+        }
+
+        function clearStorageMask() {
+            prevMasks = [];
             $.ajax({
                 async: false,
-                url: '/api.php?method=storage.set&token=' + ForumAPITicket + '&key=maskListUser&value=' +
-                encodeURI(prevMasks.join('|splitKey|'))
+                url: '/api.php',
+                data: {
+                    method: 'storage.delete',
+                    token: ForumAPITicket,
+                    key: 'maskListUser'
+                }
             });
             getMaskStorage(prevMasks);
         }
@@ -950,7 +989,11 @@ let hvScriptSet = {
         function getStorageMask() {
             let mask = $.ajax({
                 async: false,
-                url: '/api.php?method=storage.get&key=maskListUser'
+                url: '/api.php',
+                data: {
+                    method: 'storage.get',
+                    key: 'maskListUser'
+                }
             });
 
             return JSON.parse(mask.responseText).response &&
@@ -960,7 +1003,8 @@ let hvScriptSet = {
 
         function getClearedPost(post, chList) {
             let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|');
-            let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|');
+            let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|')
+                                     .replace(/<dl class="post-sig">(.*?)?<\/dl>/g, '');
 
             for (let ch in chList) {
                 if (chList.hasOwnProperty(ch)) {
@@ -995,18 +1039,18 @@ let hvScriptSet = {
 
         document.addEventListener('DOMContentLoaded', () => {
             if (FORUM.topic) {
-                getPosts();
-                if (UserID !== 1) {
-                    getDialog();
-                }
-            } else if (!FORUM.topic && FORUM.editor) {
-                if (UserID !== 1) {
-                    getDialog();
-                }
-                hidePreviewTags();
-            } else {
-                hideTags();
+            getPosts();
+            if (UserID !== 1) {
+                getDialog();
             }
-        });
+        } else if (!FORUM.topic && FORUM.editor) {
+            if (UserID !== 1) {
+                getDialog();
+            }
+            hidePreviewTags();
+        } else {
+            hideTags();
+        }
+    });
     }
 };
