@@ -8,18 +8,18 @@
  *
  * Что нового:
  * 1. Исправлен баг с диалогом маски на страницах редактирования сообщений / новой темы
+ * 2. Профиль с маской отмечается классом .hv-mask для возможности стилизации
+ * 3. Из диалога маски можно выходить по клавише ESC
  *
  * TODO:
- * 1. Проставить класс changed на профиль с маской
  * 2. Научить предпросмотр отображать bbcode в ЛЗ
  * 3. Добавить тип 'bbcode' для changeList
- * 5. Добавить выход из диалога по esc
  * 6. Вставка спецсимволов в подписи/лз
  */
 
-let hvScriptSet =  {
+let hvScriptSet = {
 
-    addMask: function(opt) {
+    addMask: function (opt) {
         let changeList = {
             'author': {
                 title: 'Ник',
@@ -74,7 +74,7 @@ let hvScriptSet =  {
         let errorList = {};
 
         let userFields = opt.userFields ? opt.userFields : ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
-            'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
+                'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
         let allTagsList = getTagList();
 
         let defaultAvatar = opt.defaultAvatar ? opt.defaultAvatar : 'http://i.imgur.com/bQuC3S1.png';
@@ -199,12 +199,15 @@ let hvScriptSet =  {
                                     break;
                                 case 'text':
                                     let _content = changedPosts[_i].changeList[change].content;
-                                    if (change === 'author') {
-                                        fieldEl.innerText = _content.length > 25 ? _content.slice(0, 25) : _content;
-                                    } else if (change === 'title') {
-                                        fieldEl.innerText = _content.length > 50 ? _content.slice(0, 50) : _content;
-                                    } else {
-                                        fieldEl.innerText = _content.length > 255 ? _content.slice(0, 255) : _content;
+                                    switch (change) {
+                                        case 'author':
+                                            fieldEl.innerText = _content.length > 25 ? _content.slice(0, 25) : _content;
+                                            break;
+                                        case 'title':
+                                            fieldEl.innerText = _content.length > 50 ? _content.slice(0, 50) : _content;
+                                            break;
+                                        default:
+                                            fieldEl.innerText = _content.length > 255 ? _content.slice(0, 255) : _content;
                                     }
                                     break;
                                 case 'link':
@@ -231,6 +234,7 @@ let hvScriptSet =  {
                     }
                 }
                 let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
+                changedPosts[_i].profile.className += ' hv-mask';
                 changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
             }
         }
@@ -264,7 +268,7 @@ let hvScriptSet =  {
 
         function getTags(text) {
             let postChangeList = {};
-            let clearedText = text.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'');
+            let clearedText = text.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi, '');
             for (let field in changeList) {
                 if (changeList.hasOwnProperty(field)) {
                     let tags = changeList[field].tag.split(',');
@@ -306,27 +310,31 @@ let hvScriptSet =  {
             let userInfo = getUsersInfo(usersId);
             for (let id in userInfo) {
                 if (userInfo.hasOwnProperty(id)) {
-                    if (userInfo[id].groupId == 1 || userInfo[id].groupId == 2) {
-                        userInfo[id].access = {
-                            'common': true,
-                            'extended': true
-                        };
-                    } else if (userInfo[id].groupId == 3) {
-                        userInfo[id].access = {
-                            'common': opt.guestAccess ?
-                                Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false,
-                            'extended': opt.guestAccess ?
-                                Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false
-                        };
-                    } else {
-                        userInfo[id].access = {
-                            'common': opt.forumAccess && opt.forumAccess[FORUM.topic.forum_name] ?
-                                Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(userInfo[id].groupTitle) + 1) :
-                                true,
-                            'extended': opt.forumAccessExtended && opt.forumAccessExtended[FORUM.topic.forum_name] ?
-                                Boolean(opt.forumAccessExtended[FORUM.topic.forum_name]
-                                        .indexOf(userInfo[id].groupTitle) + 1) : false
-                        };
+                    switch (userInfo[id].groupId) {
+                        case '1':
+                        case '2':
+                            userInfo[id].access = {
+                                'common': true,
+                                'extended': true
+                            };
+                            break;
+                        case '3':
+                            userInfo[id].access = {
+                                'common': opt.guestAccess ?
+                                    Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false,
+                                'extended': opt.guestAccess ?
+                                    Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false
+                            };
+                            break;
+                        default:
+                            userInfo[id].access = {
+                                'common': opt.forumAccess && opt.forumAccess[FORUM.topic.forum_name] ?
+                                    Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(userInfo[id].groupTitle) + 1) :
+                                    true,
+                                'extended': opt.forumAccessExtended && opt.forumAccessExtended[FORUM.topic.forum_name] ?
+                                    Boolean(opt.forumAccessExtended[FORUM.topic.forum_name]
+                                            .indexOf(userInfo[id].groupTitle) + 1) : false
+                            };
                     }
                 }
             }
@@ -374,11 +382,11 @@ let hvScriptSet =  {
                 if (checkAccessExtended() || getAccessByForumName() === 'extended') {
                     maskButton.addEventListener('click', event => {
                         if (event.ctrlKey) {
-                        insertAvatarTags();
-                    } else {
-                        callMaskDialog();
-                    }
-                });
+                            insertAvatarTags();
+                        } else {
+                            callMaskDialog();
+                        }
+                    });
                 } else {
                     maskButton.addEventListener('click', insertAvatarTags);
                 }
@@ -442,10 +450,6 @@ let hvScriptSet =  {
                 range.moveStart('character', selectionStart);
                 range.select();
             }
-        }
-
-        function setCaretToPos(input, pos) {
-            setSelectionRange(input, pos, pos);
         }
 
         function changeMaskForm(field, value) {
@@ -564,11 +568,17 @@ let hvScriptSet =  {
             let maskDialog = document.getElementById('mask_dialog');
             maskDialog.style.display = 'block';
             getMaskStorage(prevMasks);
+            document.addEventListener('keyup', hideMaskByEsc);
         }
 
         function hideMaskDialog() {
             let maskDialog = document.getElementById('mask_dialog');
             maskDialog.style.display = 'none';
+            document.removeEventListener('keyup', hideMaskByEsc);
+        }
+
+        function hideMaskByEsc(e) {
+            if (e.keyCode === 27) hideMaskDialog();
         }
 
         function buildMaskDialog() {
@@ -581,9 +591,9 @@ let hvScriptSet =  {
 
             bg.addEventListener('click', event => {
                 if (event.target === bg) {
-                hideMaskDialog();
-            }
-        });
+                    hideMaskDialog();
+                }
+            });
 
             let inner = document.createElement('div');
             inner.className = 'inner container';
@@ -622,16 +632,16 @@ let hvScriptSet =  {
                         }
                         input.addEventListener('blur', () => {
                             let idField = input.id.split('mask_')[1];
-                        if (input.value !== '' && !checkHtml(input.value)) {
-                            tmpMask[idField] = {
-                                'tag': changeList[idField].tag.split(',')[0],
-                                'value': input.value
-                            };
-                        } else {
-                            delete tmpMask[idField];
-                        }
-                        changeMaskForm(idField, input.value);
-                    });
+                            if (input.value !== '' && !checkHtml(input.value)) {
+                                tmpMask[idField] = {
+                                    'tag': changeList[idField].tag.split(',')[0],
+                                    'value': input.value
+                                };
+                            } else {
+                                delete tmpMask[idField];
+                            }
+                            changeMaskForm(idField, input.value);
+                        });
                         let label = document.createElement('label');
                         label.for = 'mask_' + mask;
 
@@ -977,13 +987,13 @@ let hvScriptSet =  {
 
         function checkAccess() {
             let flag = opt.forumAccess ? opt.forumAccess[FORUM.topic.forum_name] ?
-                Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : true;
+                    Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : true;
             return flag || GroupID === 1 || GroupID === 2;
         }
 
         function checkAccessExtended() {
             let flag = FORUM.topic ? opt.forumAccessExtended ? opt.forumAccessExtended[FORUM.topic.forum_name] ?
-                Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : false : false;
+                        Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : false : false;
             return flag || GroupID === 1 || GroupID === 2;
         }
 
@@ -1003,9 +1013,9 @@ let hvScriptSet =  {
         }
 
         function getClearedPost(post, chList) {
-            let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|');
-            let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|')
-                                     .replace(/<dl class="post-sig">(.*?)?<\/dl>/g, '');
+            let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|');
+            let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|')
+                .replace(/<dl class="post-sig">(.*?)?<\/dl>/g, '');
 
             for (let ch in chList) {
                 if (chList.hasOwnProperty(ch)) {
@@ -1040,18 +1050,18 @@ let hvScriptSet =  {
 
         document.addEventListener('DOMContentLoaded', () => {
             if (FORUM.topic) {
-            getPosts();
-            if (UserID !== 1) {
-                getDialog();
+                getPosts();
+                if (UserID !== 1) {
+                    getDialog();
+                }
+            } else if (!FORUM.topic && FORUM.editor) {
+                if (UserID !== 1) {
+                    getDialog();
+                }
+                hidePreviewTags();
+            } else {
+                hideTags();
             }
-        } else if (!FORUM.topic && FORUM.editor) {
-            if (UserID !== 1) {
-                getDialog();
-            }
-            hidePreviewTags();
-        } else {
-            hideTags();
-        }
-    });
+        });
     }
 };
