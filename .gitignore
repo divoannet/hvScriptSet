@@ -1,0 +1,9 @@
+### IDE Files ###
+.idea
+*.iml
+.vscode
+
+### NPM files ###
+**/node_modules
+**/typings
+*.log

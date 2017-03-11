@@ -13,7 +13,7 @@
  * 1. Проставить класс changed на профиль с маской
  * 2. Научить предпросмотр отображать bbcode в ЛЗ
  * 3. Добавить тип 'bbcode' для changeList
- * 4. Научить скрипт вставлять многострочные подписи/ЛЗ в поле ответа
+ * 4. Баг диалога маски на странице post.php
  * 5. Добавить выход из диалога по esc
  * 6. Вставка спецсимволов в подписи/лз
  */
@@ -1031,7 +1031,7 @@ var hvScriptSet =  {
                 .replace(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi, '$2');
             if ((opt.forumAccessExtended && opt.forumAccessExtended[name]) || GroupID === 1 || GroupID === 2) {
                 if (opt.forumAccessExtended[name].indexOf(GroupTitle) + 1) {
-                    return 'exended';
+                    return 'extended';
                 }
             } else if (opt.forumAccess && opt.forumAccess[name]) {
                 if (opt.forumAccess[name].indexOf(GroupTitle) + 1) {
