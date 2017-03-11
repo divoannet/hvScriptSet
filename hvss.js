@@ -10,11 +10,11 @@
  * 1. Исправлен баг с диалогом маски на страницах редактирования сообщений / новой темы
  * 2. Профиль с маской отмечается классом .hv-mask для возможности стилизации
  * 3. Из диалога маски можно выходить по клавише ESC
+ * 4. Исправлена ошибка отображения спецсимволов в статусе/нике
  *
  * TODO:
  * 2. Научить предпросмотр отображать bbcode в ЛЗ
  * 3. Добавить тип 'bbcode' для changeList
- * 6. Вставка спецсимволов в подписи/лз
  */
 
 let hvScriptSet = {
@@ -77,7 +77,7 @@ let hvScriptSet = {
                 'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
         let allTagsList = getTagList();
 
-        let defaultAvatar = opt.defaultAvatar ? opt.defaultAvatar : 'http://i.imgur.com/bQuC3S1.png';
+        let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
 
         let prevMasks = getStorageMask() !== '' ? getStorageMask().split('|splitKey|') : [];
 
@@ -198,16 +198,17 @@ let hvScriptSet = {
                                     fieldEl.innerHTML = content.length > 255 ? content.slice(0, 255) : content;
                                     break;
                                 case 'text':
-                                    let _content = changedPosts[_i].changeList[change].content;
+                                    let _content = changedPosts[_i].changeList[change].content
+                                        .replace(/</i, '&lt').replace(/>/i, '&rt');
                                     switch (change) {
                                         case 'author':
-                                            fieldEl.innerText = _content.length > 25 ? _content.slice(0, 25) : _content;
+                                            fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
                                             break;
                                         case 'title':
-                                            fieldEl.innerText = _content.length > 50 ? _content.slice(0, 50) : _content;
+                                            fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
                                             break;
                                         default:
-                                            fieldEl.innerText = _content.length > 255 ? _content.slice(0, 255) : _content;
+                                            fieldEl.innerHTML = _content.length > 255 ? _content.slice(0, 255) : _content;
                                     }
                                     break;
                                 case 'link':
