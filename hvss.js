@@ -257,6 +257,7 @@ let hvScriptSet = {
 
         function hidePreviewTags() {
             let text = document.querySelector('.post-content');
+            if (!text) return;
             for (let tag in allTagsList) {
                 if (allTagsList.hasOwnProperty(tag)) {
                     let pattern =
