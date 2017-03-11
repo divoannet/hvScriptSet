@@ -11,10 +11,10 @@
  * 2. Профиль с маской отмечается классом .hv-mask для возможности стилизации
  * 3. Из диалога маски можно выходить по клавише ESC
  * 4. Исправлена ошибка отображения спецсимволов в статусе/нике
+ * 5. Добавлен тип bbcode для кастомных полей
  *
  * TODO:
  * 2. Научить предпросмотр отображать bbcode в ЛЗ
- * 3. Добавить тип 'bbcode' для changeList
  */
 
 let hvScriptSet = {
@@ -196,6 +196,10 @@ let hvScriptSet = {
                                         }
                                     }
                                     fieldEl.innerHTML = content.length > 255 ? content.slice(0, 255) : content;
+                                    break;
+                                case 'bbcode':
+                                    let __content = changedPosts[_i].changeList[change].content;
+                                    fieldEl.innerHTML = __content.length > 255 ? __content.slice(0, 255) : __content;
                                     break;
                                 case 'text':
                                     let _content = changedPosts[_i].changeList[change].content
@@ -624,13 +628,17 @@ let hvScriptSet = {
                         let li = document.createElement('div');
                         li.className = 'mask-field ' + mask;
                         let input = void 0;
-                        if (changeList[mask].type === 'html' || changeList[mask].type === 'signature') {
-                            input = document.createElement('textarea');
-                            input.id = 'mask_' + mask;
-                        } else {
-                            input = document.createElement('input');
-                            input.type = 'text';
-                            input.id = 'mask_' + mask;
+                        switch (changeList[mask].type) {
+                            case 'html':
+                            case 'signature':
+                            case 'bbcode':
+                                input = document.createElement('textarea');
+                                input.id = 'mask_' + mask;
+                                break;
+                            default:
+                                input = document.createElement('input');
+                                input.type = 'text';
+                                input.id = 'mask_' + mask;
                         }
                         input.addEventListener('blur', () => {
                             let idField = input.id.split('mask_')[1];
