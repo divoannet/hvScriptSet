@@ -2,23 +2,22 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Исправлен баг c подписью
+ * 1. Исправлен баг с диалогом маски на страницах редактирования сообщений / новой темы
  *
  * TODO:
  * 1. Проставить класс changed на профиль с маской
  * 2. Научить предпросмотр отображать bbcode в ЛЗ
  * 3. Добавить тип 'bbcode' для changeList
- * 4. Баг диалога маски на странице post.php
  * 5. Добавить выход из диалога по esc
  * 6. Вставка спецсимволов в подписи/лз
  */
 
-var hvScriptSet =  {
+let hvScriptSet =  {
 
     addMask: function(opt) {
         let changeList = {
@@ -182,7 +181,6 @@ var hvScriptSet =  {
                                 .changeList[change].field)[0];
                             switch (changedPosts[_i].changeList[change].type) {
                                 case 'html':
-                                {
                                     let content = strToHtml(changedPosts[_i].changeList[change].content);
                                     if (content === '') {
                                         console.error('Что-то не так с маской в посте #' + changedPosts[_i].postId);
@@ -197,12 +195,9 @@ var hvScriptSet =  {
                                                 .style.border = 'solid 1px #f00';
                                         }
                                     }
-
                                     fieldEl.innerHTML = content.length > 255 ? content.slice(0, 255) : content;
-                                }
                                     break;
                                 case 'text':
-                                {
                                     let _content = changedPosts[_i].changeList[change].content;
                                     if (change === 'author') {
                                         fieldEl.innerText = _content.length > 25 ? _content.slice(0, 25) : _content;
@@ -211,7 +206,6 @@ var hvScriptSet =  {
                                     } else {
                                         fieldEl.innerText = _content.length > 255 ? _content.slice(0, 255) : _content;
                                     }
-                                }
                                     break;
                                 case 'link':
                                     fieldEl.querySelector('a').innerText =
@@ -236,7 +230,7 @@ var hvScriptSet =  {
                         }
                     }
                 }
-                var sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
+                let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
                 changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
             }
         }
