@@ -239,7 +239,7 @@ let hvScriptSet = {
                     }
                 }
                 let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
-                changedPosts[_i].profile.className += ' hv-mask';
+                changedPosts[_i].profile.classList.add('hv-mask');
                 changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
             }
         }
