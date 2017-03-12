@@ -11,10 +11,8 @@
  * 2. Профиль с маской отмечается классом .hv-mask для возможности стилизации
  * 3. Из диалога маски можно выходить по клавише ESC
  * 4. Исправлена ошибка отображения спецсимволов в статусе/нике
+ * 5. Добавлен тип bbcode для кастомных полей
  *
- * TODO:
- * 2. Научить предпросмотр отображать bbcode в ЛЗ
- * 3. Добавить тип 'bbcode' для changeList
  */
 
 let hvScriptSet = {
@@ -197,6 +195,10 @@ let hvScriptSet = {
                                     }
                                     fieldEl.innerHTML = content.length > 255 ? content.slice(0, 255) : content;
                                     break;
+                                case 'bbcode':
+                                    let __content = changedPosts[_i].changeList[change].content;
+                                    fieldEl.innerHTML = __content.length > 255 ? __content.slice(0, 255) : __content;
+                                    break;
                                 case 'text':
                                     let _content = changedPosts[_i].changeList[change].content
                                         .replace(/</i, '&lt').replace(/>/i, '&rt');
@@ -235,7 +237,7 @@ let hvScriptSet = {
                     }
                 }
                 let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
-                changedPosts[_i].profile.className += ' hv-mask';
+                changedPosts[_i].profile.classList.add('hv-mask');
                 changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
             }
         }
@@ -491,12 +493,23 @@ let hvScriptSet = {
                         errorList[field] = 'Поле [' + changeList[field].title + '] не должно содержать больше 255 символов';
                     } else {
                         delete errorList[field];
-                        str = value !== '' ? value : '';
-                        if (checkHtml(str)) {
-                            errorList[field] = 'В поле [' + changeList[field].title + '] недопустимые теги';
-                        } else {
-                            delete errorList[field];
-                            previewForm.querySelector('.preview-' + field).innerHTML = str;
+                        str = value || '';
+                        switch (changeList[field].type) {
+                            case 'text':
+                                delete errorList[field];
+                                previewForm.querySelector('.preview-' + field).innerHTML = str.replace(/</gi, '&lt;');
+                                break;
+                            case 'bbcode':
+                                delete errorList[field];
+                                previewForm.querySelector('.preview-' + field).innerHTML = bbcodeToHtml(str);
+                                break;
+                            default:
+                                if (checkHtml(str)) {
+                                    errorList[field] = 'В поле [' + changeList[field].title + '] недопустимые теги';
+                                } else {
+                                    delete errorList[field];
+                                    previewForm.querySelector('.preview-' + field).innerHTML = str;
+                                }
                         }
                     }
                     break;
@@ -608,7 +621,7 @@ let hvScriptSet = {
             errorListBlock.className = 'error-list';
             errorListBlock.style.display = 'none';
 
-            let showPreviewFlag = opt.showPreview !== undefined ? opt.showPreview : true;
+            let showPreviewFlag = opt.showPreview || true;
 
             let preview = document.createElement('div');
             previewForm = preview;
@@ -618,19 +631,41 @@ let hvScriptSet = {
             let form = document.createElement('form');
             form.id = 'mask_form';
 
+            let previewMaskForm = document.createElement('form');
+            previewMaskForm.id = 'hv_preview_form';
+            previewMaskForm.style.display = 'none';
+
+            let previewFormSent = document.createElement('input');
+            previewFormSent.type = 'hidden';
+            previewFormSent.name = 'form_sent';
+            previewFormSent.value = 1;
+            let previewFormUser = document.createElement('input');
+            previewFormUser.type = 'hidden';
+            previewFormUser.name = 'form_user';
+            previewFormUser.value = UserLogin;
+            let previewReqMessage = document.createElement('textarea');
+            previewReqMessage.name = 'req_message';
+            previewMaskForm.appendChild(previewFormSent);
+            previewMaskForm.appendChild(previewFormUser);
+            previewMaskForm.appendChild(previewReqMessage);
+
             let _loop = function _loop(mask) {
                 if (changeList.hasOwnProperty(mask)) {
                     (function () {
                         let li = document.createElement('div');
                         li.className = 'mask-field ' + mask;
                         let input = void 0;
-                        if (changeList[mask].type === 'html' || changeList[mask].type === 'signature') {
-                            input = document.createElement('textarea');
-                            input.id = 'mask_' + mask;
-                        } else {
-                            input = document.createElement('input');
-                            input.type = 'text';
-                            input.id = 'mask_' + mask;
+                        switch (changeList[mask].type) {
+                            case 'html':
+                            case 'signature':
+                            case 'bbcode':
+                                input = document.createElement('textarea');
+                                input.id = 'mask_' + mask;
+                                break;
+                            default:
+                                input = document.createElement('input');
+                                input.type = 'text';
+                                input.id = 'mask_' + mask;
                         }
                         input.addEventListener('blur', () => {
                             let idField = input.id.split('mask_')[1];
@@ -676,6 +711,7 @@ let hvScriptSet = {
             let formBlock = document.createElement('div');
             formBlock.className = 'form-block';
             formBlock.appendChild(form);
+            formBlock.appendChild(previewMaskForm);
 
             let userMasks = document.createElement('ul');
             userMasks.className = 'masks-storage';
@@ -813,7 +849,7 @@ let hvScriptSet = {
                         key: 'maskListUser',
                         value: encodeURI(prevMasks.join('|splitKey|'))
                     }
-                )
+                );
                 getMaskStorage(prevMasks);
                 clearMask();
                 hideMaskDialog();
@@ -965,6 +1001,39 @@ let hvScriptSet = {
                 console.error('Forbidden tag properties in mask');
             }
             return check ? '' : str.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        }
+
+        function bbcodeToHtml(str) {
+            let tempStr = str;
+
+            tempStr = tempStr.replace(/\n/gi, `<br />`);
+
+            tempStr = tempStr.replace(/\[font=(.*?)\](.*?)\[\/font\]/gi, `<span style="font-family: $1">$2</span>`);
+            tempStr = tempStr.replace(/\[size=(\d*?)\](.*?)\[\/size\]/gi, `<span style="font-family: $1px">$2</span>`);
+            tempStr = tempStr.replace(/\[b\](.*?)\[\/b\]/gi, `<strong>$1</strong>`);
+
+            tempStr = tempStr.replace(/\[i](.*?)\[\/i\]/gi, `<span style="font-style: italic">$1</span>`);
+            tempStr = tempStr.replace(/\[u\](.*?)\[\/u\]/gi, `<em class="bbuline">$1</em>`);
+            tempStr = tempStr.replace(/\[s\](.*?)\[\/s\]/gi, `<del>$1</del>`);
+
+            tempStr = tempStr.replace(/\[align=([left|center|right]*?)\](.*?)\[\/align\]/gi,
+                `<span style="display: block; text-align: $1">$2</span>`);
+            tempStr = tempStr.replace(/\[url=(https?:\/\/.*?)\](.*?)\[\/url\]/gi,
+                `<a href="$1" rel="nofollow" target="_blank">$2</a>`);
+            tempStr = tempStr.replace(/\[url\](https?:\/\/.*?)\[\/url\]/gi,
+                `<a href="$1" rel="nofollow" target="_blank">$1</a>`);
+            tempStr = tempStr.replace(/\[color=(.*?)\](.*?)\[\/color\]/gi, `<span style="color: $1">$2</span>`);
+
+            tempStr = tempStr.replace(/\[img\](https?:\/\/.*?\.(?:jpg|png|jpeg|gif))\[\/img\]/gi, `<img class="postimg" src="$1" alt="$1">`);
+
+            tempStr = tempStr.replace(/\[you\]/gi, UserLogin);
+            tempStr = tempStr.replace(/\[hr\]/gi, `<hr>`);
+            tempStr = tempStr.replace(/\[sup\](.*?)\[\/sup\]/gi, `<sup>$1</sup>`);
+            tempStr = tempStr.replace(/\[sub\](.*?)\[\/sub\]/gi, `<sub>$1</sub>`);
+            tempStr = tempStr.replace(/\[mark\](.*?)\[\/mark\]/gi, `<span class="highlight-text">$1</span>`);
+            tempStr = tempStr.replace(/\[abbr="(.*?)"\](.*?)\[\/abbr\]/gi, `<abbr title="$1">$2</abbr>`);
+
+            return tempStr;
         }
 
         function checkHtml(html) {
