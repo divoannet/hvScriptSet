@@ -181,7 +181,7 @@ let hvScriptSet = {
                                 case 'html':
                                     let content = strToHtml(changedPosts[_i].changeList[change].content);
                                     if (content === '') {
-                                        console.error('Что-то не так с маской в посте #' + changedPosts[_i].postId);
+                                        console.error(`Что-то не так с маской в посте #${changedPosts[_i].postId}`);
                                         if (GroupID === 1 || GroupID === 2) {
                                             let errorMess = document.getElementById('admin_msg1');
                                             errorMess.innerHTML = 'Что-то не так с маской в посте #' +
@@ -1004,7 +1004,7 @@ let hvScriptSet = {
         }
 
         function bbcodeToHtml(str) {
-            let tempStr = str;
+            let tempStr = str.replace(/</gi, '&lt;');
 
             tempStr = tempStr.replace(/\n/gi, `<br />`);
 
