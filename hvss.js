@@ -13,8 +13,6 @@
  * 4. Исправлена ошибка отображения спецсимволов в статусе/нике
  * 5. Добавлен тип bbcode для кастомных полей
  *
- * TODO:
- * 2. Научить предпросмотр отображать bbcode в ЛЗ
  */
 
 let hvScriptSet = {
@@ -495,12 +493,23 @@ let hvScriptSet = {
                         errorList[field] = 'Поле [' + changeList[field].title + '] не должно содержать больше 255 символов';
                     } else {
                         delete errorList[field];
-                        str = value !== '' ? value : '';
-                        if (checkHtml(str)) {
-                            errorList[field] = 'В поле [' + changeList[field].title + '] недопустимые теги';
-                        } else {
-                            delete errorList[field];
-                            previewForm.querySelector('.preview-' + field).innerHTML = str;
+                        str = value || '';
+                        switch (changeList[field].type) {
+                            case 'text':
+                                delete errorList[field];
+                                previewForm.querySelector('.preview-' + field).innerHTML = str.replace(/</gi, '&lt;');
+                                break;
+                            case 'bbcode':
+                                delete errorList[field];
+                                previewForm.querySelector('.preview-' + field).innerHTML = bbcodeToHtml(str);
+                                break;
+                            default:
+                                if (checkHtml(str)) {
+                                    errorList[field] = 'В поле [' + changeList[field].title + '] недопустимые теги';
+                                } else {
+                                    delete errorList[field];
+                                    previewForm.querySelector('.preview-' + field).innerHTML = str;
+                                }
                         }
                     }
                     break;
@@ -612,7 +621,7 @@ let hvScriptSet = {
             errorListBlock.className = 'error-list';
             errorListBlock.style.display = 'none';
 
-            let showPreviewFlag = opt.showPreview !== undefined ? opt.showPreview : true;
+            let showPreviewFlag = opt.showPreview || true;
 
             let preview = document.createElement('div');
             previewForm = preview;
@@ -621,6 +630,24 @@ let hvScriptSet = {
 
             let form = document.createElement('form');
             form.id = 'mask_form';
+
+            let previewMaskForm = document.createElement('form');
+            previewMaskForm.id = 'hv_preview_form';
+            previewMaskForm.style.display = 'none';
+
+            let previewFormSent = document.createElement('input');
+            previewFormSent.type = 'hidden';
+            previewFormSent.name = 'form_sent';
+            previewFormSent.value = 1;
+            let previewFormUser = document.createElement('input');
+            previewFormUser.type = 'hidden';
+            previewFormUser.name = 'form_user';
+            previewFormUser.value = UserLogin;
+            let previewReqMessage = document.createElement('textarea');
+            previewReqMessage.name = 'req_message';
+            previewMaskForm.appendChild(previewFormSent);
+            previewMaskForm.appendChild(previewFormUser);
+            previewMaskForm.appendChild(previewReqMessage);
 
             let _loop = function _loop(mask) {
                 if (changeList.hasOwnProperty(mask)) {
@@ -684,6 +711,7 @@ let hvScriptSet = {
             let formBlock = document.createElement('div');
             formBlock.className = 'form-block';
             formBlock.appendChild(form);
+            formBlock.appendChild(previewMaskForm);
 
             let userMasks = document.createElement('ul');
             userMasks.className = 'masks-storage';
@@ -821,7 +849,7 @@ let hvScriptSet = {
                         key: 'maskListUser',
                         value: encodeURI(prevMasks.join('|splitKey|'))
                     }
-                )
+                );
                 getMaskStorage(prevMasks);
                 clearMask();
                 hideMaskDialog();
@@ -973,6 +1001,39 @@ let hvScriptSet = {
                 console.error('Forbidden tag properties in mask');
             }
             return check ? '' : str.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        }
+
+        function bbcodeToHtml(str) {
+            let tempStr = str;
+
+            tempStr = tempStr.replace(/\n/gi, `<br />`);
+
+            tempStr = tempStr.replace(/\[font=(.*?)\](.*?)\[\/font\]/gi, `<span style="font-family: $1">$2</span>`);
+            tempStr = tempStr.replace(/\[size=(\d*?)\](.*?)\[\/size\]/gi, `<span style="font-family: $1px">$2</span>`);
+            tempStr = tempStr.replace(/\[b\](.*?)\[\/b\]/gi, `<strong>$1</strong>`);
+
+            tempStr = tempStr.replace(/\[i](.*?)\[\/i\]/gi, `<span style="font-style: italic">$1</span>`);
+            tempStr = tempStr.replace(/\[u\](.*?)\[\/u\]/gi, `<em class="bbuline">$1</em>`);
+            tempStr = tempStr.replace(/\[s\](.*?)\[\/s\]/gi, `<del>$1</del>`);
+
+            tempStr = tempStr.replace(/\[align=([left|center|right]*?)\](.*?)\[\/align\]/gi,
+                `<span style="display: block; text-align: $1">$2</span>`);
+            tempStr = tempStr.replace(/\[url=(https?:\/\/.*?)\](.*?)\[\/url\]/gi,
+                `<a href="$1" rel="nofollow" target="_blank">$2</a>`);
+            tempStr = tempStr.replace(/\[url\](https?:\/\/.*?)\[\/url\]/gi,
+                `<a href="$1" rel="nofollow" target="_blank">$1</a>`);
+            tempStr = tempStr.replace(/\[color=(.*?)\](.*?)\[\/color\]/gi, `<span style="color: $1">$2</span>`);
+
+            tempStr = tempStr.replace(/\[img\](https?:\/\/.*?\.(?:jpg|png|jpeg|gif))\[\/img\]/gi, `<img class="postimg" src="$1" alt="$1">`);
+
+            tempStr = tempStr.replace(/\[you\]/gi, UserLogin);
+            tempStr = tempStr.replace(/\[hr\]/gi, `<hr>`);
+            tempStr = tempStr.replace(/\[sup\](.*?)\[\/sup\]/gi, `<sup>$1</sup>`);
+            tempStr = tempStr.replace(/\[sub\](.*?)\[\/sub\]/gi, `<sub>$1</sub>`);
+            tempStr = tempStr.replace(/\[mark\](.*?)\[\/mark\]/gi, `<span class="highlight-text">$1</span>`);
+            tempStr = tempStr.replace(/\[abbr="(.*?)"\](.*?)\[\/abbr\]/gi, `<abbr title="$1">$2</abbr>`);
+
+            return tempStr;
         }
 
         function checkHtml(html) {
