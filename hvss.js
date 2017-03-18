@@ -2,25 +2,22 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Исправлен баг c подписью
+ * 1. Исправлен баг с диалогом маски на страницах редактирования сообщений / новой темы
+ * 2. Профиль с маской отмечается классом .hv-mask для возможности стилизации
+ * 3. Из диалога маски можно выходить по клавише ESC
+ * 4. Исправлена ошибка отображения спецсимволов в статусе/нике
+ * 5. Добавлен тип bbcode для кастомных полей
  *
- * TODO:
- * 1. Проставить класс changed на профиль с маской
- * 2. Научить предпросмотр отображать bbcode в ЛЗ
- * 3. Добавить тип 'bbcode' для changeList
- * 4. Баг диалога маски на странице post.php
- * 5. Добавить выход из диалога по esc
- * 6. Вставка спецсимволов в подписи/лз
  */
 
-var hvScriptSet =  {
+let hvScriptSet = {
 
-    addMask: function(opt) {
+    addMask: function (opt) {
         let changeList = {
             'author': {
                 title: 'Ник',
@@ -75,10 +72,10 @@ var hvScriptSet =  {
         let errorList = {};
 
         let userFields = opt.userFields ? opt.userFields : ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
-            'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
+                'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
         let allTagsList = getTagList();
 
-        let defaultAvatar = opt.defaultAvatar ? opt.defaultAvatar : 'http://i.imgur.com/bQuC3S1.png';
+        let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
 
         let prevMasks = getStorageMask() !== '' ? getStorageMask().split('|splitKey|') : [];
 
@@ -182,10 +179,9 @@ var hvScriptSet =  {
                                 .changeList[change].field)[0];
                             switch (changedPosts[_i].changeList[change].type) {
                                 case 'html':
-                                {
                                     let content = strToHtml(changedPosts[_i].changeList[change].content);
                                     if (content === '') {
-                                        console.error('Что-то не так с маской в посте #' + changedPosts[_i].postId);
+                                        console.error(`Что-то не так с маской в посте #${changedPosts[_i].postId}`);
                                         if (GroupID === 1 || GroupID === 2) {
                                             let errorMess = document.getElementById('admin_msg1');
                                             errorMess.innerHTML = 'Что-то не так с маской в посте #' +
@@ -197,21 +193,25 @@ var hvScriptSet =  {
                                                 .style.border = 'solid 1px #f00';
                                         }
                                     }
-
                                     fieldEl.innerHTML = content.length > 255 ? content.slice(0, 255) : content;
-                                }
+                                    break;
+                                case 'bbcode':
+                                    let __content = changedPosts[_i].changeList[change].content;
+                                    fieldEl.innerHTML = __content.length > 255 ? __content.slice(0, 255) : __content;
                                     break;
                                 case 'text':
-                                {
-                                    let _content = changedPosts[_i].changeList[change].content;
-                                    if (change === 'author') {
-                                        fieldEl.innerText = _content.length > 25 ? _content.slice(0, 25) : _content;
-                                    } else if (change === 'title') {
-                                        fieldEl.innerText = _content.length > 50 ? _content.slice(0, 50) : _content;
-                                    } else {
-                                        fieldEl.innerText = _content.length > 255 ? _content.slice(0, 255) : _content;
+                                    let _content = changedPosts[_i].changeList[change].content
+                                        .replace(/</i, '&lt').replace(/>/i, '&rt');
+                                    switch (change) {
+                                        case 'author':
+                                            fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
+                                            break;
+                                        case 'title':
+                                            fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
+                                            break;
+                                        default:
+                                            fieldEl.innerHTML = _content.length > 255 ? _content.slice(0, 255) : _content;
                                     }
-                                }
                                     break;
                                 case 'link':
                                     fieldEl.querySelector('a').innerText =
@@ -236,7 +236,8 @@ var hvScriptSet =  {
                         }
                     }
                 }
-                var sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
+                let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">(.*?)?<\/dl>/);
+                changedPosts[_i].profile.classList.add('hv-mask');
                 changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
             }
         }
@@ -259,6 +260,7 @@ var hvScriptSet =  {
 
         function hidePreviewTags() {
             let text = document.querySelector('.post-content');
+            if (!text) return;
             for (let tag in allTagsList) {
                 if (allTagsList.hasOwnProperty(tag)) {
                     let pattern =
@@ -270,7 +272,7 @@ var hvScriptSet =  {
 
         function getTags(text) {
             let postChangeList = {};
-            let clearedText = text.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'');
+            let clearedText = text.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi, '');
             for (let field in changeList) {
                 if (changeList.hasOwnProperty(field)) {
                     let tags = changeList[field].tag.split(',');
@@ -312,27 +314,31 @@ var hvScriptSet =  {
             let userInfo = getUsersInfo(usersId);
             for (let id in userInfo) {
                 if (userInfo.hasOwnProperty(id)) {
-                    if (userInfo[id].groupId == 1 || userInfo[id].groupId == 2) {
-                        userInfo[id].access = {
-                            'common': true,
-                            'extended': true
-                        };
-                    } else if (userInfo[id].groupId == 3) {
-                        userInfo[id].access = {
-                            'common': opt.guestAccess ?
-                                Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false,
-                            'extended': opt.guestAccess ?
-                                Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false
-                        };
-                    } else {
-                        userInfo[id].access = {
-                            'common': opt.forumAccess && opt.forumAccess[FORUM.topic.forum_name] ?
-                                Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(userInfo[id].groupTitle) + 1) :
-                                true,
-                            'extended': opt.forumAccessExtended && opt.forumAccessExtended[FORUM.topic.forum_name] ?
-                                Boolean(opt.forumAccessExtended[FORUM.topic.forum_name]
-                                        .indexOf(userInfo[id].groupTitle) + 1) : false
-                        };
+                    switch (userInfo[id].groupId) {
+                        case '1':
+                        case '2':
+                            userInfo[id].access = {
+                                'common': true,
+                                'extended': true
+                            };
+                            break;
+                        case '3':
+                            userInfo[id].access = {
+                                'common': opt.guestAccess ?
+                                    Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false,
+                                'extended': opt.guestAccess ?
+                                    Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false
+                            };
+                            break;
+                        default:
+                            userInfo[id].access = {
+                                'common': opt.forumAccess && opt.forumAccess[FORUM.topic.forum_name] ?
+                                    Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(userInfo[id].groupTitle) + 1) :
+                                    true,
+                                'extended': opt.forumAccessExtended && opt.forumAccessExtended[FORUM.topic.forum_name] ?
+                                    Boolean(opt.forumAccessExtended[FORUM.topic.forum_name]
+                                            .indexOf(userInfo[id].groupTitle) + 1) : false
+                            };
                     }
                 }
             }
@@ -380,11 +386,11 @@ var hvScriptSet =  {
                 if (checkAccessExtended() || getAccessByForumName() === 'extended') {
                     maskButton.addEventListener('click', event => {
                         if (event.ctrlKey) {
-                        insertAvatarTags();
-                    } else {
-                        callMaskDialog();
-                    }
-                });
+                            insertAvatarTags();
+                        } else {
+                            callMaskDialog();
+                        }
+                    });
                 } else {
                     maskButton.addEventListener('click', insertAvatarTags);
                 }
@@ -450,10 +456,6 @@ var hvScriptSet =  {
             }
         }
 
-        function setCaretToPos(input, pos) {
-            setSelectionRange(input, pos, pos);
-        }
-
         function changeMaskForm(field, value) {
             let str = '';
             switch (field) {
@@ -491,12 +493,23 @@ var hvScriptSet =  {
                         errorList[field] = 'Поле [' + changeList[field].title + '] не должно содержать больше 255 символов';
                     } else {
                         delete errorList[field];
-                        str = value !== '' ? value : '';
-                        if (checkHtml(str)) {
-                            errorList[field] = 'В поле [' + changeList[field].title + '] недопустимые теги';
-                        } else {
-                            delete errorList[field];
-                            previewForm.querySelector('.preview-' + field).innerHTML = str;
+                        str = value || '';
+                        switch (changeList[field].type) {
+                            case 'text':
+                                delete errorList[field];
+                                previewForm.querySelector('.preview-' + field).innerHTML = str.replace(/</gi, '&lt;');
+                                break;
+                            case 'bbcode':
+                                delete errorList[field];
+                                previewForm.querySelector('.preview-' + field).innerHTML = bbcodeToHtml(str);
+                                break;
+                            default:
+                                if (checkHtml(str)) {
+                                    errorList[field] = 'В поле [' + changeList[field].title + '] недопустимые теги';
+                                } else {
+                                    delete errorList[field];
+                                    previewForm.querySelector('.preview-' + field).innerHTML = str;
+                                }
                         }
                     }
                     break;
@@ -570,11 +583,17 @@ var hvScriptSet =  {
             let maskDialog = document.getElementById('mask_dialog');
             maskDialog.style.display = 'block';
             getMaskStorage(prevMasks);
+            document.addEventListener('keyup', hideMaskByEsc);
         }
 
         function hideMaskDialog() {
             let maskDialog = document.getElementById('mask_dialog');
             maskDialog.style.display = 'none';
+            document.removeEventListener('keyup', hideMaskByEsc);
+        }
+
+        function hideMaskByEsc(e) {
+            if (e.keyCode === 27) hideMaskDialog();
         }
 
         function buildMaskDialog() {
@@ -587,9 +606,9 @@ var hvScriptSet =  {
 
             bg.addEventListener('click', event => {
                 if (event.target === bg) {
-                hideMaskDialog();
-            }
-        });
+                    hideMaskDialog();
+                }
+            });
 
             let inner = document.createElement('div');
             inner.className = 'inner container';
@@ -602,7 +621,7 @@ var hvScriptSet =  {
             errorListBlock.className = 'error-list';
             errorListBlock.style.display = 'none';
 
-            let showPreviewFlag = opt.showPreview !== undefined ? opt.showPreview : true;
+            let showPreviewFlag = opt.showPreview || true;
 
             let preview = document.createElement('div');
             previewForm = preview;
@@ -612,32 +631,54 @@ var hvScriptSet =  {
             let form = document.createElement('form');
             form.id = 'mask_form';
 
+            let previewMaskForm = document.createElement('form');
+            previewMaskForm.id = 'hv_preview_form';
+            previewMaskForm.style.display = 'none';
+
+            let previewFormSent = document.createElement('input');
+            previewFormSent.type = 'hidden';
+            previewFormSent.name = 'form_sent';
+            previewFormSent.value = 1;
+            let previewFormUser = document.createElement('input');
+            previewFormUser.type = 'hidden';
+            previewFormUser.name = 'form_user';
+            previewFormUser.value = UserLogin;
+            let previewReqMessage = document.createElement('textarea');
+            previewReqMessage.name = 'req_message';
+            previewMaskForm.appendChild(previewFormSent);
+            previewMaskForm.appendChild(previewFormUser);
+            previewMaskForm.appendChild(previewReqMessage);
+
             let _loop = function _loop(mask) {
                 if (changeList.hasOwnProperty(mask)) {
                     (function () {
                         let li = document.createElement('div');
                         li.className = 'mask-field ' + mask;
                         let input = void 0;
-                        if (changeList[mask].type === 'html' || changeList[mask].type === 'signature') {
-                            input = document.createElement('textarea');
-                            input.id = 'mask_' + mask;
-                        } else {
-                            input = document.createElement('input');
-                            input.type = 'text';
-                            input.id = 'mask_' + mask;
+                        switch (changeList[mask].type) {
+                            case 'html':
+                            case 'signature':
+                            case 'bbcode':
+                                input = document.createElement('textarea');
+                                input.id = 'mask_' + mask;
+                                break;
+                            default:
+                                input = document.createElement('input');
+                                input.type = 'text';
+                                input.id = 'mask_' + mask;
                         }
                         input.addEventListener('blur', () => {
                             let idField = input.id.split('mask_')[1];
-                        if (input.value !== '' && !checkHtml(input.value)) {
-                            tmpMask[idField] = {
-                                'tag': changeList[idField].tag.split(',')[0],
-                                'value': input.value
-                            };
-                        } else {
-                            delete tmpMask[idField];
-                        }
-                        changeMaskForm(idField, input.value);
-                    });
+                            if (input.value !== '' && !checkHtml(input.value)) {
+                                tmpMask[idField] = {
+                                    'tag': changeList[idField].tag.split(',')[0],
+                                    'value': input.value
+                                };
+                            } else {
+                                delete tmpMask[idField];
+                            }
+                            changeMaskForm(idField, input.value);
+                        });
                         let label = document.createElement('label');
                         label.for = 'mask_' + mask;
 
@@ -670,6 +711,7 @@ var hvScriptSet =  {
             let formBlock = document.createElement('div');
             formBlock.className = 'form-block';
             formBlock.appendChild(form);
+            formBlock.appendChild(previewMaskForm);
 
             let userMasks = document.createElement('ul');
             userMasks.className = 'masks-storage';
@@ -807,7 +849,7 @@ var hvScriptSet =  {
                         key: 'maskListUser',
                         value: encodeURI(prevMasks.join('|splitKey|'))
                     }
-                )
+                );
                 getMaskStorage(prevMasks);
                 clearMask();
                 hideMaskDialog();
@@ -961,6 +1003,39 @@ var hvScriptSet =  {
             return check ? '' : str.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
         }
 
+        function bbcodeToHtml(str) {
+            let tempStr = str.replace(/</gi, '&lt;');
+
+            tempStr = tempStr.replace(/\n/gi, `<br />`);
+
+            tempStr = tempStr.replace(/\[font=(.*?)\](.*?)\[\/font\]/gi, `<span style="font-family: $1">$2</span>`);
+            tempStr = tempStr.replace(/\[size=(\d*?)\](.*?)\[\/size\]/gi, `<span style="font-family: $1px">$2</span>`);
+            tempStr = tempStr.replace(/\[b\](.*?)\[\/b\]/gi, `<strong>$1</strong>`);
+
+            tempStr = tempStr.replace(/\[i](.*?)\[\/i\]/gi, `<span style="font-style: italic">$1</span>`);
+            tempStr = tempStr.replace(/\[u\](.*?)\[\/u\]/gi, `<em class="bbuline">$1</em>`);
+            tempStr = tempStr.replace(/\[s\](.*?)\[\/s\]/gi, `<del>$1</del>`);
+
+            tempStr = tempStr.replace(/\[align=([left|center|right]*?)\](.*?)\[\/align\]/gi,
+                `<span style="display: block; text-align: $1">$2</span>`);
+            tempStr = tempStr.replace(/\[url=(https?:\/\/.*?)\](.*?)\[\/url\]/gi,
+                `<a href="$1" rel="nofollow" target="_blank">$2</a>`);
+            tempStr = tempStr.replace(/\[url\](https?:\/\/.*?)\[\/url\]/gi,
+                `<a href="$1" rel="nofollow" target="_blank">$1</a>`);
+            tempStr = tempStr.replace(/\[color=(.*?)\](.*?)\[\/color\]/gi, `<span style="color: $1">$2</span>`);
+
+            tempStr = tempStr.replace(/\[img\](https?:\/\/.*?\.(?:jpg|png|jpeg|gif))\[\/img\]/gi, `<img class="postimg" src="$1" alt="$1">`);
+
+            tempStr = tempStr.replace(/\[you\]/gi, UserLogin);
+            tempStr = tempStr.replace(/\[hr\]/gi, `<hr>`);
+            tempStr = tempStr.replace(/\[sup\](.*?)\[\/sup\]/gi, `<sup>$1</sup>`);
+            tempStr = tempStr.replace(/\[sub\](.*?)\[\/sub\]/gi, `<sub>$1</sub>`);
+            tempStr = tempStr.replace(/\[mark\](.*?)\[\/mark\]/gi, `<span class="highlight-text">$1</span>`);
+            tempStr = tempStr.replace(/\[abbr="(.*?)"\](.*?)\[\/abbr\]/gi, `<abbr title="$1">$2</abbr>`);
+
+            return tempStr;
+        }
+
         function checkHtml(html) {
             let forbiddenTagsCheck = false;
             for (let i = 0; i < forbiddenTags.length; i++) {
@@ -983,13 +1058,13 @@ var hvScriptSet =  {
 
         function checkAccess() {
             let flag = opt.forumAccess ? opt.forumAccess[FORUM.topic.forum_name] ?
-                Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : true;
+                    Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : true;
             return flag || GroupID === 1 || GroupID === 2;
         }
 
         function checkAccessExtended() {
             let flag = FORUM.topic ? opt.forumAccessExtended ? opt.forumAccessExtended[FORUM.topic.forum_name] ?
-                Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : false : false;
+                        Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : false : false;
             return flag || GroupID === 1 || GroupID === 2;
         }
 
@@ -1009,9 +1084,9 @@ var hvScriptSet =  {
         }
 
         function getClearedPost(post, chList) {
-            let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|');
-            let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi,'|code-box-replacer|')
-                                     .replace(/<dl class="post-sig">(.*?)?<\/dl>/g, '');
+            let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|');
+            let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="height: 4.5em"><pre>(.*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|')
+                .replace(/<dl class="post-sig">(.*?)?<\/dl>/g, '');
 
             for (let ch in chList) {
                 if (chList.hasOwnProperty(ch)) {
@@ -1046,18 +1121,18 @@ var hvScriptSet =  {
 
         document.addEventListener('DOMContentLoaded', () => {
             if (FORUM.topic) {
-            getPosts();
-            if (UserID !== 1) {
-                getDialog();
+                getPosts();
+                if (UserID !== 1) {
+                    getDialog();
+                }
+            } else if (!FORUM.topic && FORUM.editor) {
+                if (UserID !== 1) {
+                    getDialog();
+                }
+                hidePreviewTags();
+            } else {
+                hideTags();
             }
-        } else if (!FORUM.topic && FORUM.editor) {
-            if (UserID !== 1) {
-                getDialog();
-            }
-            hidePreviewTags();
-        } else {
-            hideTags();
-        }
-    });
+        });
     }
 };
