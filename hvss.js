@@ -11,6 +11,7 @@
  * 2. Поправлена работа маски со скриптом рамки
  * 3. Стили маски изменены на уникальные
  * 4. Исправлены баги работы скрипта в теге code
+ * 5. Исправлен баг в темах с удалённым создателем
  */
 
 let hvScriptSet = {
@@ -223,12 +224,12 @@ let hvScriptSet = {
                                             let signEl = document.createElement('dl');
                                             signEl.className = 'post-sig';
                                             signEl.innerHTML = `
-                        <dl class="post-sig">
-                          <dt>
-                            <span>Подпись автора</span>
-                          </dt>
-                          <dd></dd>
-                        </dl>`;
+                                                <dl class="post-sig">
+                                                  <dt>
+                                                    <span>Подпись автора</span>
+                                                  </dt>
+                                                  <dd></dd>
+                                                </dl>`;
                                             changedPosts[_i].text.appendChild(signEl);
                                             changedPosts[_i].signature = signEl.querySelector('.post-sig dd');
                                         }
@@ -349,7 +350,7 @@ let hvScriptSet = {
         }
 
         function getUsersInfo(usersId) {
-            let usersIdStr = usersId.join(',');
+            let usersIdStr = usersId.filter(item => +item > 1).join(',');
             let usersInfo = {};
             if (usersId.indexOf('1') + 1) {
                 usersInfo['1'] = {
@@ -600,7 +601,7 @@ let hvScriptSet = {
         }
 
         function insertAvatarTags() {
-            bbcode('[icon]', '[/icon]');
+            bbcode('[icon]','[/icon]');
         }
 
         function setSelectionRange(input, selectionStart, selectionEnd) {
