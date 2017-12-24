@@ -2,16 +2,13 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Исправлен баг многострочной маски
- * 2. Поправлена работа маски со скриптом рамки
- * 3. Стили маски изменены на уникальные
- * 4. Исправлены баги работы скрипта в теге code
- * 5. Исправлен баг в темах с удалённым создателем
+ * 1. Исправлен баг с маской для удалённых пользователей
+ * 2. Поправлена совместимость со скриптом кликабельности ников
  */
 
 let hvScriptSet = {
@@ -85,15 +82,15 @@ let hvScriptSet = {
       let changedPosts = {};
       let changedUsersId = [];
       for (let i = 0; i < posts.length; i++) {
-        let postEl = posts[i].querySelector('.post-content');
-        let postId = posts[i].getAttribute('id');
-        let postProfile = posts[i].querySelector('.post-author ul');
-        let postText = postEl.innerHTML;
-        let postSignature = posts[i].querySelector('.post-sig dd');
-        let postChangeList = getTags(postText);
+        const postEl = posts[i].querySelector('.post-content');
+        const postId = posts[i].getAttribute('id');
+        const postProfile = posts[i].querySelector('.post-author ul');
+        const postText = postEl.innerHTML;
+        const postSignature = posts[i].querySelector('.post-sig dd');
+        const postChangeList = getTags(postText);
 
         let userId = '1';
-        let postUserNameLink = postProfile.querySelector('.pa-author a');
+        const postUserNameLink = postProfile.querySelector('.pa-author a');
 
         if (postUserNameLink) {
           if (postUserNameLink.href.indexOf('/profile.php') + 1) {
@@ -101,7 +98,7 @@ let hvScriptSet = {
           } else {
             let postProfileLinks = posts[i].querySelector('.post-links');
             let postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
-            userId = postProfileUserLink.href.split('=')[1];
+            userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
           }
         }
 
@@ -146,7 +143,7 @@ let hvScriptSet = {
                 }
               }
             }
-            let avatar = changedPosts[_i].profile.querySelector(`.pa-avatar img[title='${changedPosts[_i].username}']`);
+            let avatar = changedPosts[_i].profile.querySelector(`.pa-avatar img[title="${changedPosts[_i].username}"]`);
             avatar.src = changedPosts[_i].changeList.avatar.content;
             avatar.removeAttribute('width');
             avatar.removeAttribute('height');
@@ -360,26 +357,28 @@ let hvScriptSet = {
           'groupTitle': 'Гость'
         };
       }
-      $.ajax({
-        async: false,
-        url: '/api.php',
-        data: {
-          method: 'users.get',
-          user_id: usersIdStr
-        },
-        success: function success(json) {
-          for (let i in json.response.users) {
-            if (json.response.users.hasOwnProperty(i)) {
-              usersInfo[json.response.users[i].user_id] = {
-                'userId': i,
-                'username': json.response.users[i].username,
-                'groupId': json.response.users[i].group_id,
-                'groupTitle': json.response.users[i].group_title
-              };
+      if (usersIdStr) {
+        $.ajax({
+          async: false,
+          url: '/api.php',
+          data: {
+            method: 'users.get',
+            user_id: usersIdStr
+          },
+          success: function success(json) {
+            for (let i in json.response.users) {
+              if (json.response.users.hasOwnProperty(i)) {
+                usersInfo[json.response.users[i].user_id] = {
+                  'userId': i,
+                  'username': json.response.users[i].username,
+                  'groupId': json.response.users[i].group_id,
+                  'groupTitle': json.response.users[i].group_title
+                };
+              }
             }
           }
-        }
-      });
+        });
+      }
 
       return usersInfo;
     }
@@ -1217,14 +1216,24 @@ let hvScriptSet = {
     }
 
     function checkAccess() {
-      let flag = FORUM.topic ? opt.forumAccess ? opt.forumAccess[FORUM.topic.forum_name] ?
-        Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : true : false;
+      let flag = FORUM.topic
+        ? opt.forumAccess
+          ? opt.forumAccess[FORUM.topic.forum_name]
+            ? Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1)
+            : false
+          : true
+        : false;
       return flag || GroupID === 1 || GroupID === 2;
     }
 
     function checkAccessExtended() {
-      let flag = FORUM.topic ? opt.forumAccessExtended ? opt.forumAccessExtended[FORUM.topic.forum_name] ?
-        Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1) : false : false : false;
+      let flag = FORUM.topic
+        ? opt.forumAccessExtended
+          ? opt.forumAccessExtended[FORUM.topic.forum_name]
+            ? Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1)
+            : false
+          : false
+        : false;
       return flag || GroupID === 1 || GroupID === 2;
     }
 
@@ -1260,9 +1269,9 @@ let hvScriptSet = {
     }
 
     function getAccessByForumName() {
-      let crumbs = document.getElementById('pun-crumbs1');
-      let name = crumbs.innerHTML.match(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi)[0]
-        .replace(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi, '$2');
+      const crumbs = document.getElementById('pun-crumbs1');
+      const link = crumbs.innerHTML.match(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi).pop();
+      let name = link.replace(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi, '$2');
       if ((opt.forumAccessExtended && opt.forumAccessExtended[name]) || GroupID === 1 || GroupID === 2) {
         if (opt.forumAccessExtended[name].indexOf(GroupTitle) + 1) {
           return 'extended';
