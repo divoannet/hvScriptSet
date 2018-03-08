@@ -90,16 +90,16 @@ let hvScriptSet = {
         const postChangeList = getTags(postText);
 
         let userId = '1';
-        const postUserNameLink = postProfile.querySelector('.pa-author a');
 
-        if (postUserNameLink) {
-          if (postUserNameLink.href.indexOf('/profile.php') + 1) {
+        if (UserID === 1) {
+          const postUserNameLink = postProfile.querySelector('.pa-author a');
+          if (postUserNameLink && postUserNameLink.href.includes('/profile.php')) {
             userId = postUserNameLink.href.split('=')[1];
-          } else {
-            let postProfileLinks = posts[i].querySelector('.post-links');
-            let postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
-            userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
           }
+        } else {
+          const postProfileLinks = posts[i].querySelector('.post-links');
+          let postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
+          userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
         }
 
         if (Object.keys(postChangeList).length !== 0) {
@@ -262,18 +262,13 @@ let hvScriptSet = {
     function hidePreviewTags() {
       let text = document.querySelector('.post-content');
       if (!text) return;
-      for (let tag in allTagsList) {
-        if (allTagsList.hasOwnProperty(tag)) {
-          let pattern =
-            new RegExp('\\[' + allTagsList[tag] + '\\](.*?)\\[\/' + allTagsList[tag] + '\\]', 'gi');
-          text.innerHTML = text.innerHTML.replace(pattern, '');
-        }
-      }
+      let tags = getTags(text.innerHTML);
+      text.innerHTML = getClearedPost(text, tags);
     }
 
     function getTags(text) {
       let postChangeList = {};
-      let clearedText = text.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="(?:.*?)"><pre>([\s\S]*?)?<\/pre><\/div><\/div><\/div>/gi, '');
+      let clearedText = text.replace(/<div class="code-box"><strong class="legend">([\s\S]*?)?<\/strong><div class="blockcode"><div class="scrollbox" style="(?:.*?)"><pre>([\s\S]*?)?<\/pre><\/div><\/div><\/div>/gi, '');
       for (let field in changeList) {
         if (changeList.hasOwnProperty(field)) {
           let tags = changeList[field].tag.split(',');
@@ -313,6 +308,7 @@ let hvScriptSet = {
 
     function getAccess(usersId) {
       let userInfo = getUsersInfo(usersId);
+      const forumName = getClearedForumName(FORUM.topic.forum_name);
       for (let id in userInfo) {
         if (userInfo.hasOwnProperty(id)) {
           switch (userInfo[id].groupId) {
@@ -326,19 +322,18 @@ let hvScriptSet = {
             case '3':
               userInfo[id].access = {
                 'common': opt.guestAccess ?
-                  Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false,
+                  opt.guestAccess.includes(forumName) : false,
                 'extended': opt.guestAccess ?
-                  Boolean(opt.guestAccess.indexOf(FORUM.topic.forum_name) + 1) : false
+                  opt.guestAccess.includes(forumName) : false
               };
               break;
             default:
               userInfo[id].access = {
-                'common': opt.forumAccess && opt.forumAccess[FORUM.topic.forum_name] ?
-                  Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(userInfo[id].groupTitle) + 1) :
-                  true,
-                'extended': opt.forumAccessExtended && opt.forumAccessExtended[FORUM.topic.forum_name] ?
-                  Boolean(opt.forumAccessExtended[FORUM.topic.forum_name]
-                      .indexOf(userInfo[id].groupTitle) + 1) : false
+                'common': opt.forumAccess && opt.forumAccess[forumName] ?
+                  opt.forumAccess[forumName].includes(userInfo[id].groupTitle) : true,
+                'extended': opt.forumAccessExtended && opt.forumAccessExtended[forumName] ?
+                  opt.forumAccessExtended[forumName]
+                    .includes(userInfo[id].groupTitle) : false
               };
           }
         }
@@ -349,7 +344,7 @@ let hvScriptSet = {
     function getUsersInfo(usersId) {
       let usersIdStr = usersId.filter(item => +item > 1).join(',');
       let usersInfo = {};
-      if (usersId.indexOf('1') + 1) {
+      if (usersId.includes('1')) {
         usersInfo['1'] = {
           'userId': '1',
           'username': 'Guest',
@@ -649,8 +644,8 @@ let hvScriptSet = {
           }
           break;
         default:
-          if (value.length > 255) {
-            errorList[field] = `Поле [${changeList[field].title}] не должно содержать больше 255 символов`;
+          if (value.length > 999) {
+            errorList[field] = `Поле [${changeList[field].title}] не должно содержать больше 999 символов`;
           } else {
             delete errorList[field];
             str = value || '';
@@ -1121,7 +1116,7 @@ let hvScriptSet = {
     }
 
     let forbiddenTags = ['input', 'button', 'script', 'iframe', 'frame', 'style', 'audio', 'video', 'form',
-      'footer', 'header', 'head', 'html', 'map', 'select', 'table', 'textarea', 'xmp', 'object', 'embed',
+      'footer', 'header', 'head', 'html', 'map', 'select', 'textarea', 'xmp', 'object', 'embed',
       'var', 'meta'];
     let forbiddenEvents = ['onblur', 'onchange', 'onclick', 'ondblclick', 'onfocus', 'onkeydown', 'onkeypress',
       'onkeyup', 'onload', 'onmousedown', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onreset',
@@ -1138,7 +1133,7 @@ let hvScriptSet = {
       let forbiddenTag = '';
       let forbiddenTagsCheck = false;
       for (let i = 0; i < forbiddenTags.length; i++) {
-        let pattern = new RegExp('(<|&lt;)?' + forbiddenTags[i]);
+        let pattern = new RegExp('(<|&lt;)' + forbiddenTags[i]);
         forbiddenTagsCheck = pattern.exec(str);
         if (forbiddenTagsCheck) {
           forbiddenTag = forbiddenTagsCheck[0].replace('&lt;', '');
@@ -1198,7 +1193,7 @@ let hvScriptSet = {
     function checkHtml(html) {
       let forbiddenTagsCheck = false;
       for (let i = 0; i < forbiddenTags.length; i++) {
-        let pattern = new RegExp('(<|&lt;)?' + forbiddenTags[i]);
+        let pattern = new RegExp('(<|&lt;)' + forbiddenTags[i]);
         forbiddenTagsCheck = pattern.exec(html);
         if (forbiddenTagsCheck) return true;
       }
@@ -1211,30 +1206,30 @@ let hvScriptSet = {
     }
 
     function checkImage(src) {
-      return (/\.jpg|\.png|\.gif/.test(src)
-      );
+      return (/\.jpg|\.png|\.gif/.test(src));
     }
 
     function checkAccess() {
-      let flag = FORUM.topic
-        ? opt.forumAccess
-          ? opt.forumAccess[FORUM.topic.forum_name]
-            ? Boolean(opt.forumAccess[FORUM.topic.forum_name].indexOf(GroupTitle) + 1)
-            : false
-          : true
-        : false;
-      return flag || GroupID === 1 || GroupID === 2;
+      if (!FORUM.topic) return false;
+      if (!opt.forumAccess || GroupID === 1 || GroupID === 2) return true;
+
+      let forumName = getClearedForumName(FORUM.topic.forum_name);
+
+      return opt.forumAccess[forumName] ?
+        opt.forumAccess[forumName].includes(GroupTitle) :
+        false;
     }
 
     function checkAccessExtended() {
-      let flag = FORUM.topic
-        ? opt.forumAccessExtended
-          ? opt.forumAccessExtended[FORUM.topic.forum_name]
-            ? Boolean(opt.forumAccessExtended[FORUM.topic.forum_name].indexOf(GroupTitle) + 1)
-            : false
-          : false
-        : false;
-      return flag || GroupID === 1 || GroupID === 2;
+      if (!FORUM.topic) return false;
+      if (GroupID === 1 || GroupID === 2) return true;
+      if (!opt.forumAccessExtended) return false;
+
+      let forumName = getClearedForumName(FORUM.topic.forum_name);
+
+      return opt.forumAccessExtended[forumName] ?
+        opt.forumAccessExtended[forumName].includes(GroupTitle) :
+        false;
     }
 
     function getStorageMask() {
@@ -1253,8 +1248,8 @@ let hvScriptSet = {
     }
 
     function getClearedPost(post, chList) {
-      let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="(?:.*?)"><pre>([\s\S]*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|');
-      let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">Код:<\/strong><div class="blockcode"><div class="scrollbox" style="(?:.*?)"><pre>([\s\S]*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|')
+      let codeBoxes = post.innerHTML.match(/<div class="code-box"><strong class="legend">([\s\S]*?)?<\/strong><div class="blockcode"><div class="scrollbox" style="(?:.*?)"><pre>([\s\S]*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|');
+      let text = post.innerHTML.replace(/<div class="code-box"><strong class="legend">([\s\S]*?)?<\/strong><div class="blockcode"><div class="scrollbox" style="(?:.*?)"><pre>([\s\S]*?)?<\/pre><\/div><\/div><\/div>/gi, '|code-box-replacer|')
         .replace(/<dl class="post-sig">([\s\S]*?)?<\/dl>/g, '');
       for (let ch in chList) {
         if (chList.hasOwnProperty(ch)) {
@@ -1268,11 +1263,19 @@ let hvScriptSet = {
       return text;
     }
 
+    function getClearedForumName(name) {
+      return name[0] === String.fromCharCode(173) ?
+        name.substr(1) // совместимость со скриптом подфорумов
+        : name;
+    }
+
     function getAccessByForumName() {
+      if (GroupID === 1 || GroupID === 2) return 'extended';
       const crumbs = document.getElementById('pun-crumbs1');
       const link = crumbs.innerHTML.match(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi).pop();
       let name = link.replace(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi, '$2');
-      if ((opt.forumAccessExtended && opt.forumAccessExtended[name]) || GroupID === 1 || GroupID === 2) {
+      name = getClearedForumName(name);
+      if ((opt.forumAccessExtended && opt.forumAccessExtended[name])) {
         if (opt.forumAccessExtended[name].indexOf(GroupTitle) + 1) {
           return 'extended';
         }
