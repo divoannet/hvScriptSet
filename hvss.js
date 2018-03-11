@@ -143,7 +143,9 @@ let hvScriptSet = {
                 }
               }
             }
-            let avatar = changedPosts[_i].profile.querySelector(`.pa-avatar img[title="${changedPosts[_i].username}"]`);
+            let avatar = changedPosts[_i].profile.querySelector(`.pa-avatar img[title]`)
+              || changedPosts[_i].profile.querySelector(`.pa-avatar img[alt]`)
+              || changedPosts[_i].profile.querySelector(`.pa-avatar img`);
             avatar.src = changedPosts[_i].changeList.avatar.content;
             avatar.removeAttribute('width');
             avatar.removeAttribute('height');
@@ -806,7 +808,7 @@ let hvScriptSet = {
 
       let _loop = function _loop(mask) {
         if (changeList.hasOwnProperty(mask)) {
-          (function () {
+          (function() {
             let li = document.createElement('div');
             li.className = 'hv-mask-field ' + mask;
             let input = void 0;
@@ -847,7 +849,7 @@ let hvScriptSet = {
               templateButton.className = 'button hv-add-template';
               templateButton.innerText = '« вставить шаблон';
               templateButton.title = 'Вставить шаблон';
-              templateButton.addEventListener('click', function () {
+              templateButton.addEventListener('click', function() {
                 fillInput(input, changeList[mask].defaultCode);
                 changeMaskForm(mask, input.value);
               });
