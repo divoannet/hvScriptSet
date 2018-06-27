@@ -110,13 +110,12 @@ let hvScriptSet = {
             clearedText: getClearedPost(postEl, postChangeList),
             profile: postProfile,
             changeList: postChangeList,
-            signature: postSignature
-          };
-          if (!(changedUsersId.indexOf(userId) + 1)) {
-            changedUsersId.push(userId);
-          }
-        }
-      }
+          signature: post.querySelector('.post-sig dd')
+        });
+
+        if (!changedUsersId.includes(userId)) changedUsersId.push(userId);
+      });
+      console.log(changedPosts);
       let checkAccess = changedUsersId.length > 0 ? getAccess(changedUsersId) : {};
       for (let _i in changedPosts) {
         if (changedPosts.hasOwnProperty(_i)) {
