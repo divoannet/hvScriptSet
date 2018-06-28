@@ -1,0 +1,25 @@
+{
+  "name": "hvscriptset",
+  "version": "1.0.11",
+  "description": "Script set for QuadroBoards forums ui extending",
+  "main": "hvss.js",
+  "scripts": {
+    "build": "babel hvss.js -o ./hvss.min.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divoannet/hvScriptSet.git"
+  },
+  "author": "Anna Fedoseeva aka Человек-Шаман",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/divoannet/hvScriptSet/issues"
+  },
+  "homepage": "https://github.com/divoannet/hvScriptSet#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-minify": "^0.4.3",
+    "babel-plugin-syntax-object-rest-spread": "^6.13.0",
+    "babel-preset-env": "^1.7.0"
+  }
+}

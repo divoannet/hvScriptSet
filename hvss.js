@@ -72,7 +72,7 @@ let hvScriptSet = {
         const userId = getUserIdFromPost(post);
 
         if (Object.keys(postChangeList).length === 0) return;
-        
+
         changedPosts.push({
           post: post,
           postId: post.getAttribute('id'),
@@ -426,7 +426,7 @@ let hvScriptSet = {
                 background: rgba(0, 0, 0, .4);
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner {
                 cursor: default;
                 margin: 0;
@@ -439,11 +439,11 @@ let hvScriptSet = {
                 background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");
                 padding: 8px;
             }
-            
+
             #mask_dialog .inner * {
                 box-sizing: border-box;
             }
-            
+
             #mask_dialog .inner .hv-mask-dialog-title {
                 text-align: center;
                 font-weight: 700;
@@ -451,7 +451,7 @@ let hvScriptSet = {
                 line-height: 34px;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-error-list {
                 padding: 8px;
                 margin: 8px;
@@ -459,13 +459,13 @@ let hvScriptSet = {
                 color: #BD0909;
                 border: solid 1px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block {
                 display: flex;
                 justify-content: space-between;
                 align-items: stretch;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block {
                 flex: 0 0 120px;
                 text-align: center;
@@ -473,61 +473,61 @@ let hvScriptSet = {
                 overflow: hidden;
                 word-break: break-word;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block > div {
                 padding: 3px 0;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block .hv-preview-avatar img {
                 max-width: 100px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block label {
                 display: block;
                 margin-bottom: px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block label:after {
                 content: "";
                 display: table;
                 clear: both;
                 margin-bottom: 2px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-description {
                 font-size: .9em;
                 color: #999;
                 font-style: italic;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-add-template {
                 cursor: pointer;
                 float: right;
                 padding: 2px 4px;
                 border: solid 1px #ccc;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block input,
             #mask_dialog .inner .hv-mask-block .hv-form-block textarea {
                 width: 100%;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field {
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field + .hv-mask-field {
                 margin-top: 10px;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage {
                 flex: 0 1 140px;
                 display: flex;
@@ -538,22 +538,22 @@ let hvScriptSet = {
                 flex-wrap: wrap;
                 list-style: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage.hidden {
                 display: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element {
                 width: 60px;
                 padding: 4px;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element img {
                 max-width: 100%;
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip {
                 position: absolute;
                 top: 4px;
@@ -566,32 +566,32 @@ let hvScriptSet = {
                 border: solid 1px #ccc;
                 display: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element > img:hover + .hv-mask-tooltip {
                 display: block;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip > * {
                 zoom: .7
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-delete-mask {
                 display: block;
                 font-size: 10px;
                 text-align: center;
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner .hv-control {
                 padding: 8px;
                 text-align: center;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-control input + input {
                 margin-left: 10px;
             }
-            
+
             #mask_dialog .inner .hv-control .hv-clear-storage {
                 position: absolute;
                 right: 0;
