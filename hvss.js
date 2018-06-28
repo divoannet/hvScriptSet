@@ -7,14 +7,13 @@
  * license: MIT
  *
  * Что нового:
- * 1. Имя маски отображается в цитировании и при обращении.
+ * 1. Имя маски проставляется в обращении и цитате
  */
 
 let hvScriptSet = {
 
-  addMask: function (opt = {}) {
-
-    const changeList = {
+  addMask: function (opt) {
+    let changeList = {
       'author': {
         title: 'Ник',
         description: 'Только текст',
@@ -42,20 +41,36 @@ let hvScriptSet = {
         tag: 'sign,sgn',
         class: 'post-sig',
         type: 'signature'
-      },
-      ...opt.changeList
+      }
     };
+    if (opt.changeList) {
+      for (let key in opt.changeList) {
+        if (opt.changeList.hasOwnProperty(key)) {
+          if (changeList[key]) {
+            for (let i in changeList[key]) {
+              if (opt.changeList[key][i]) {
+                changeList[key][i] = opt.changeList[key][i];
+              }
+            }
+          } else {
+            changeList[key] = opt.changeList[key];
+            if (!opt.changeList[key].type) {
+              changeList[key].type = 'html';
+            }
+          }
+        }
+      }
+    }
 
     let tmpMask = {};
     let previewForm = {};
     let errorList = {};
 
-    const userFields = opt.userFields || ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
+    let userFields = opt.userFields ? opt.userFields : ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
       'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
+    let allTagsList = getTagList();
 
-    const allTagsList = getTagList();
-
-    const defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
+    let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
 
     let prevMasks = getStorageMask() !== '' ? getStorageMask().split('|splitKey|') : [];
 
@@ -63,177 +78,175 @@ let hvScriptSet = {
 
     function getPosts() {
       posts = document.querySelectorAll('.post');
-      let changedPosts = [];
+      let changedPosts = {};
       let changedUsersId = [];
+      for (let i = 0; i < posts.length; i++) {
+        const postEl = posts[i].querySelector('.post-content');
+        const postId = posts[i].getAttribute('id');
+        const postProfile = posts[i].querySelector('.post-author ul');
+        const postText = postEl.innerHTML;
+        const postSignature = posts[i].querySelector('.post-sig dd');
+        const postChangeList = getTags(postText);
 
-      posts.forEach(post => {
-        const postEl = post.querySelector('.post-content');
-        const postChangeList = getTags(postEl.innerHTML);
-        const userId = getUserIdFromPost(post);
+        let userId = '1';
 
-        if (Object.keys(postChangeList).length === 0) return;
-
-        changedPosts.push({
-          post: post,
-          postId: post.getAttribute('id'),
-          userId: userId,
-          text: postEl,
-          clearedText: getClearedPost(postEl, postChangeList),
-          profile: post.querySelector('.post-author ul'),
-          changeList: postChangeList,
-          signature: post.querySelector('.post-sig dd')
-        });
-
-        if (!changedUsersId.includes(userId)) changedUsersId.push(userId);
-      });
-      const checkAccess = changedUsersId.length > 0 ? getAccess(changedUsersId) : {};
-      changedPosts = changedPosts.map(post => {
-        return {
-          ...post,
-          ...checkAccess[post.userId]
-        }
-      });
-
-      changedPosts.forEach(post => {
-        Object.keys(post.changeList).forEach(key => {
-          if (key === 'avatar') {
-            post.access.common && changePostAvatar(post);
-            return;
+        if (UserID === 1) {
+          const postUserNameLink = postProfile.querySelector('.pa-author a');
+          if (postUserNameLink && postUserNameLink.href.includes('/profile.php')) {
+            userId = postUserNameLink.href.split('=')[1];
           }
-          if (!post.access.extended) {
-            return;
-          }
-
-          if (key === 'author') {
-            changePostAuthor(post);
-            return;
-          }
-
-          if (!post.profile.querySelector(`.${post.changeList[key].field}`)) {
-            insertProfileField(post.profile, post.changeList[key].field)
-          }
-          switch (post.changeList[key].type) {
-            case 'html':
-              changePostHtml(post, key);
-              break;
-            case 'bbcode':
-              changePostBBCode(post, key);
-              break;
-            case 'text':
-              changePostText(post, key);
-              break;
-            case 'signature':
-              changePostSignature(post);
-              break;
-            default:
-              changePostText(post);
-          };
-        });
-        const sign = post.text.innerHTML.match(/<dl class="post-sig">([\s\S]*?)?<\/dl>/);
-        post.profile.classList.add('hv-mask');
-        post.text.innerHTML = post.clearedText + (sign ? sign[0] : '');
-      });
-
-      function changePostAvatar(post) {
-        const avatarEl = post.profile.querySelector('.pa-avatar img');
-        if (avatarEl) {
-          avatarEl.src = post.changeList.avatar.content;
-          avatarEl.removeAttribute('width');
-          avatarEl.removeAttribute('height');
         } else {
-          const prev = userFields[userFields.indexOf('pa-avatar') - 1];
-          const el = prev
-            ? post.profile.querySelector(`.${prev}`)
-            : post.profile;
-          const place = prev
-            ? 'afterEnd'
-            : 'beforeEnd';
-          el.insertAdjacentHTML(
-            place,
-            `<div class="pa-avatar"><img src="${post.changeList.avatar.content}"></div>`
-          );
+          const postProfileLinks = posts[i].querySelector('.post-links');
+          let postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
+          userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
         }
-      }
 
-      function changePostAuthor(post) {
-        const author = post.profile.querySelector('.pa-author a')
-          || post.profile.querySelector('.pa-author');
-        const content = post.changeList.author.content.substring(0, 25)
-        author.innerText = content;
-        if (author.href && author.href.includes('javascript')) {
-          author.href = `javascript:to('${content}')`;
-        };
-        if (post.post.querySelector('.pl-quote a')) {
-          post.post.querySelector('.pl-quote a').href = `javascript:quote('${content}', ${post.postId.slice(1)})`
-        }
-      }
-
-      function changePostHtml(post, key) {
-        let content = strToHtml(post.changeList[key].content);
-        if (content === '') {
-          if (UserID === post.userId) {
-            $.jGrowl(`Что-то не так с маской в вашем посте ${post.postId}. В ней найдены некорректные тэги. Маска не будет применена.`, { header: 'Ошибка скрипта маски', sticky: true });
-            return;
-          }
-          if (GroupID === 1 || GroupID === 2) {
-            $.jGrowl(`Что-то не так с маской юзера ${post.username} в посте ${post.postId}. В ней найдены некорректные тэги. Маска не будет применена.`, { header: 'Ошибка скрипта маски', sticky: true });
-            return;
+        if (Object.keys(postChangeList).length !== 0) {
+          changedPosts[i] = {
+            postId: postId,
+            userId: userId,
+            text: postEl,
+            clearedText: getClearedPost(postEl, postChangeList),
+            profile: postProfile,
+            changeList: postChangeList,
+            signature: postSignature
+          };
+          if (!(changedUsersId.indexOf(userId) + 1)) {
+            changedUsersId.push(userId);
           }
         }
-        if (content.length > 999) return;
-
-        const field = post.profile.querySelector(`.${post.changeList[key].field}`);
-        field.innerHTML = content;
       }
+      let checkAccess = changedUsersId.length > 0 ? getAccess(changedUsersId) : {};
+      for (let _i in changedPosts) {
+        if (changedPosts.hasOwnProperty(_i)) {
+          changedPosts[_i].username = checkAccess[changedPosts[_i].userId].username;
+          changedPosts[_i].groupId = checkAccess[changedPosts[_i].userId].groupId;
+          changedPosts[_i].groupTitle = checkAccess[changedPosts[_i].userId].groupTitle;
+          changedPosts[_i].access = checkAccess[changedPosts[_i].userId].access;
 
-      function changePostBBCode(post, key) {
-        const content = post.changeList[key].content;
-        if (content.length > 999) return;
-
-        const field = post.profile.querySelector(`.${post.changeList[key].field}`);
-        field.innerHTML = content;
-      }
-
-      function changePostText(post, key) {
-        let content = post.changeList[key].content
-          .replace(/</i, '&lt').replace(/>/i, '&rt');
-        const limit = key === 'title' ? 50 : 999;
-
-        const field = post.profile.querySelector(`.${post.changeList[key].field}`);
-        field.innerHTML = content;
-      }
-
-      function changePostSignature(post) {
-        if (GroupID === '3') return;
-
-        if (!post.signature) {
-          post.text.insertAdjacentHTML(
-            'beforeEnd',
-            `<dl class="post-sig">
-            <dt><span>Подпись автора</span></dt>
-            <dd>${post.changeList['signature'].content}</dd></dl>`
-          );
-          return;
-        }
-        post.signature.innerHTML = post.changeList['signature'].content;
-      }
-
-      function insertProfileField(profile, field) {
-        let prev;
-        for (let i = userFields.indexOf(field); i >= 0; --i) {
-          if (profile.querySelector(`.${userFields[i]}`)) {
-            prev = userFields[i];
-            break;
+          if (changedPosts[_i].changeList.avatar && changedPosts[_i].access.common) {
+            if (!changedPosts[_i].profile.querySelector('.pa-avatar img')) {
+              let fieldIndex = userFields.indexOf('pa-avatar');
+              let block = document.createElement('li');
+              block.className = 'pa-avatar';
+              block.innerHTML = `<img src="" title="${changedPosts[_i].username}">`;
+              for (let index = ++fieldIndex; index <= userFields.length; index++) {
+                let nextSibling = changedPosts[_i].profile.querySelector('.' + userFields[index]);
+                if (nextSibling) {
+                  let parent = nextSibling.parentNode;
+                  parent.insertBefore(block, nextSibling);
+                  break;
+                }
+                if (index === userFields.length) {
+                  changedPosts[_i].profile.appendChild(block);
+                }
+              }
+            }
+            let avatar = changedPosts[_i].profile.querySelector(`.pa-avatar img[title]`)
+              || changedPosts[_i].profile.querySelector(`.pa-avatar img[alt]`)
+              || changedPosts[_i].profile.querySelector(`.pa-avatar img`);
+            avatar.src = changedPosts[_i].changeList.avatar.content;
+            avatar.removeAttribute('width');
+            avatar.removeAttribute('height');
           }
         }
-        const el = prev ? profile.querySelector(`.${prev}`)
-          : profile;
-        const place = prev ? 'afterEnd' : 'beforeEnd';
-        el.insertAdjacentHTML(
-          place,
-          `<div class="${field}"></div>`
-        );
-    }
+        if (changedPosts.hasOwnProperty(_i) && changedPosts[_i].access.extended) {
+          let thisChanges = changedPosts[_i].changeList;
+          for (let change in thisChanges) {
+            if (thisChanges.hasOwnProperty(change)) {
+              if (thisChanges[change].field === 'pa-author' && changedPosts[_i].userId === '1') {
+                changedPosts[_i].changeList[change].type = 'text';
+              }
+              if (change !== 'signature' && !changedPosts[_i].profile.getElementsByClassName(changedPosts[_i]
+                .changeList[change].field)[0]) {
+                let _fieldIndex = userFields.indexOf(changedPosts[_i].changeList[change].field);
+                let _block = document.createElement('li');
+                _block.className = thisChanges[change].field;
+                for (let _index = ++_fieldIndex; _index <= userFields.length; _index++) {
+                  let _nextSibling = changedPosts[_i].profile.querySelector('.' + userFields[_index]);
+                  if (_nextSibling) {
+                    let parent = _nextSibling.parentNode;
+                    parent.insertBefore(_block, _nextSibling);
+                    break;
+                  }
+                  if (_index === userFields.length) {
+                    changedPosts[_i].profile.appendChild(_block);
+                  }
+                }
+              }
+              let fieldEl = changedPosts[_i].profile.getElementsByClassName(changedPosts[_i]
+                .changeList[change].field)[0];
+              switch (changedPosts[_i].changeList[change].type) {
+                case 'html':
+                  let content = strToHtml(changedPosts[_i].changeList[change].content);
+                  if (content === '') {
+                    console.error(`Что-то не так с маской в посте #${changedPosts[_i].postId}`);
+                    if (GroupID === 1 || GroupID === 2) {
+                      let errorMess = document.getElementById('admin_msg1');
+                      errorMess.innerHTML = `Что-то не так с маской в посте #${changedPosts[_i].postId}. Он подсвечен красным.<br><i>Сообщение показано только администрации.</i>`;
+                      errorMess.style.display = 'block';
+                      errorMess.style.zIndex = 10000;
+                      document.getElementById(changedPosts[_i].postId)
+                        .style.border = 'solid 1px #f00';
+                    }
+                  }
+                  fieldEl.innerHTML = content.length > 999 ? content.slice(0, 999) : content;
+                  break;
+                case 'bbcode':
+                  let __content = changedPosts[_i].changeList[change].content;
+                  fieldEl.innerHTML = __content.length > 999 ? __content.slice(0, 999) : __content;
+                  break;
+                case 'text':
+                  let _content = changedPosts[_i].changeList[change].content
+                    .replace(/</i, '&lt').replace(/>/i, '&rt');
+                  switch (change) {
+                    case 'author':
+                      fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
+                      break;
+                    case 'title':
+                      fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
+                      break;
+                    default:
+                      fieldEl.innerHTML = _content.length > 999 ? _content.slice(0, 999) : _content;
+                  }
+                  break;
+                case 'link':
+                  var linkContent = changedPosts[_i].changeList[change].content.length > 25 ?
+                    changedPosts[_i].changeList[change].content.slice(0, 25) :
+                    changedPosts[_i].changeList[change].content
+                  fieldEl.querySelector('a').innerText = linkContent;
+
+                  if (change === 'author') {
+                    fieldEl.querySelector('a').href = "javascript:to('" + linkContent + "')";
+                    $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + linkContent + "', " + changedPosts[_i].postId.slice(1) + ")");
+                  }
+                  break;
+                case 'signature':
+                  if (GroupID !== '3') {
+                    if (!changedPosts[_i].signature) {
+                      let signEl = document.createElement('dl');
+                      signEl.className = 'post-sig';
+                      signEl.innerHTML = `
+                                                <dl class="post-sig">
+                                                  <dt>
+                                                    <span>Подпись автора</span>
+                                                  </dt>
+                                                  <dd></dd>
+                                                </dl>`;
+                      changedPosts[_i].text.appendChild(signEl);
+                      changedPosts[_i].signature = signEl.querySelector('.post-sig dd');
+                    }
+                    changedPosts[_i].signature.innerHTML = changedPosts[_i].changeList[change].content;
+                  }
+                  break;
+              }
+            }
+          }
+        }
+        let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">([\s\S]*?)?<\/dl>/);
+        changedPosts[_i].profile.classList.add('hv-mask');
+        changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
+      }
     }
 
     function hideTags() {
@@ -256,24 +269,7 @@ let hvScriptSet = {
       let text = document.querySelector('.post-content');
       if (!text) return;
       let tags = getTags(text.innerHTML);
-      if (tags.length > 0) {
-        text.innerHTML = getClearedPost(text, tags);
-      }
-    }
-
-    function getUserIdFromPost(post) {
-      let userId = '1';
-      if (UserID === 1) {
-        const postUserNameLink = post.querySelector('.pa-author a');
-        if (postUserNameLink && postUserNameLink.href.includes('/profile.php')) {
-          userId = postUserNameLink.href.split('=')[1];
-        }
-      } else {
-        const postProfileLinks = post.querySelector('.post-links');
-        let postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
-        userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
-      }
-      return userId;
+      text.innerHTML = getClearedPost(text, tags);
     }
 
     function getTags(text) {
@@ -426,7 +422,7 @@ let hvScriptSet = {
                 background: rgba(0, 0, 0, .4);
                 cursor: pointer;
             }
-
+            
             #mask_dialog .inner {
                 cursor: default;
                 margin: 0;
@@ -439,11 +435,11 @@ let hvScriptSet = {
                 background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");
                 padding: 8px;
             }
-
+            
             #mask_dialog .inner * {
                 box-sizing: border-box;
             }
-
+            
             #mask_dialog .inner .hv-mask-dialog-title {
                 text-align: center;
                 font-weight: 700;
@@ -451,7 +447,7 @@ let hvScriptSet = {
                 line-height: 34px;
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-error-list {
                 padding: 8px;
                 margin: 8px;
@@ -459,13 +455,13 @@ let hvScriptSet = {
                 color: #BD0909;
                 border: solid 1px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block {
                 display: flex;
                 justify-content: space-between;
                 align-items: stretch;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-preview-block {
                 flex: 0 0 120px;
                 text-align: center;
@@ -473,61 +469,61 @@ let hvScriptSet = {
                 overflow: hidden;
                 word-break: break-word;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-preview-block > div {
                 padding: 3px 0;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-preview-block .hv-preview-avatar img {
                 max-width: 100px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block label {
                 display: block;
                 margin-bottom: px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block label:after {
                 content: "";
                 display: table;
                 clear: both;
                 margin-bottom: 2px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-description {
                 font-size: .9em;
                 color: #999;
                 font-style: italic;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-add-template {
                 cursor: pointer;
                 float: right;
                 padding: 2px 4px;
                 border: solid 1px #ccc;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block input,
             #mask_dialog .inner .hv-mask-block .hv-form-block textarea {
                 width: 100%;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field {
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field + .hv-mask-field {
                 margin-top: 10px;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage {
                 flex: 0 1 140px;
                 display: flex;
@@ -538,22 +534,22 @@ let hvScriptSet = {
                 flex-wrap: wrap;
                 list-style: none;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage.hidden {
                 display: none;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element {
                 width: 60px;
                 padding: 4px;
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element img {
                 max-width: 100%;
                 cursor: pointer;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip {
                 position: absolute;
                 top: 4px;
@@ -566,32 +562,32 @@ let hvScriptSet = {
                 border: solid 1px #ccc;
                 display: none;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element > img:hover + .hv-mask-tooltip {
                 display: block;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip > * {
                 zoom: .7
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-delete-mask {
                 display: block;
                 font-size: 10px;
                 text-align: center;
                 cursor: pointer;
             }
-
+            
             #mask_dialog .inner .hv-control {
                 padding: 8px;
                 text-align: center;
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-control input + input {
                 margin-left: 10px;
             }
-
+            
             #mask_dialog .inner .hv-control .hv-clear-storage {
                 position: absolute;
                 right: 0;
@@ -816,7 +812,7 @@ let hvScriptSet = {
 
       let _loop = function _loop(mask) {
         if (changeList.hasOwnProperty(mask)) {
-          (function() {
+          (function () {
             let li = document.createElement('div');
             li.className = 'hv-mask-field ' + mask;
             let input = void 0;
@@ -857,7 +853,7 @@ let hvScriptSet = {
               templateButton.className = 'button hv-add-template';
               templateButton.innerText = '« вставить шаблон';
               templateButton.title = 'Вставить шаблон';
-              templateButton.addEventListener('click', function() {
+              templateButton.addEventListener('click', function () {
                 fillInput(input, changeList[mask].defaultCode);
                 changeMaskForm(mask, input.value);
               });
@@ -1253,7 +1249,7 @@ let hvScriptSet = {
       });
 
       return JSON.parse(mask.responseText).response &&
-      JSON.parse(mask.responseText).response.storage.data.maskListUser ?
+        JSON.parse(mask.responseText).response.storage.data.maskListUser ?
         decodeURI(JSON.parse(mask.responseText).response.storage.data.maskListUser) : '';
     }
 
