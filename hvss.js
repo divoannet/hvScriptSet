@@ -10,7 +10,7 @@
  * 1. Имя маски проставляется в обращении и цитате
  */
 
-let hvScriptSet = {
+const hvScriptSet = {
 
   addMask: function (opt) {
     let changeList = {
@@ -41,32 +41,15 @@ let hvScriptSet = {
         tag: 'sign,sgn',
         class: 'post-sig',
         type: 'signature'
-      }
+      },
+      ...opt.changeList
     };
-    if (opt.changeList) {
-      for (let key in opt.changeList) {
-        if (opt.changeList.hasOwnProperty(key)) {
-          if (changeList[key]) {
-            for (let i in changeList[key]) {
-              if (opt.changeList[key][i]) {
-                changeList[key][i] = opt.changeList[key][i];
-              }
-            }
-          } else {
-            changeList[key] = opt.changeList[key];
-            if (!opt.changeList[key].type) {
-              changeList[key].type = 'html';
-            }
-          }
-        }
-      }
-    }
 
     let tmpMask = {};
     let previewForm = {};
     let errorList = {};
 
-    let userFields = opt.userFields ? opt.userFields : ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
+    let userFields = opt.userFields || ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
       'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
     let allTagsList = getTagList();
 
@@ -202,6 +185,7 @@ let hvScriptSet = {
                   switch (change) {
                     case 'author':
                       fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
+                      $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + _content + "', " + changedPosts[_i].postId.slice(1) + ")");
                       break;
                     case 'title':
                       fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
@@ -217,7 +201,9 @@ let hvScriptSet = {
                   fieldEl.querySelector('a').innerText = linkContent;
 
                   if (change === 'author') {
-                    fieldEl.querySelector('a').href = "javascript:to('" + linkContent + "')";
+                    fieldEl.querySelector('a').href = fieldEl.querySelector('a').href.includes('profile')
+                      ? "javascript:to('" + linkContent + "')"
+                      : fieldEl.querySelector('a').href;
                     $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + linkContent + "', " + changedPosts[_i].postId.slice(1) + ")");
                   }
                   break;
@@ -269,7 +255,9 @@ let hvScriptSet = {
       let text = document.querySelector('.post-content');
       if (!text) return;
       let tags = getTags(text.innerHTML);
-      text.innerHTML = getClearedPost(text, tags);
+      if (Object.keys(tags).length) {
+        text.innerHTML = getClearedPost(text, tags);
+      }
     }
 
     function getTags(text) {
