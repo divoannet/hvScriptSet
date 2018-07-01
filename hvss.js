@@ -8,6 +8,8 @@
  *
  * Что нового:
  * 1. Имя маски проставляется в обращении и цитате
+ * 2. Минорные улучшения
+ * 3. Для каждого поля ЛЗ можно указать несколько шаблонов для заполнения
  */
 
 const hvScriptSet = {
@@ -837,15 +839,41 @@ const hvScriptSet = {
             }
             li.appendChild(label);
             if (changeList[mask].defaultCode) {
-              let templateButton = document.createElement('div');
-              templateButton.className = 'button hv-add-template';
-              templateButton.innerText = '« вставить шаблон';
-              templateButton.title = 'Вставить шаблон';
-              templateButton.addEventListener('click', function () {
-                fillInput(input, changeList[mask].defaultCode);
-                changeMaskForm(mask, input.value);
-              });
-              label.insertBefore(templateButton, label.querySelector('b'));
+              const code = changeList[mask].defaultCode;
+
+              if (typeof code === 'string') {
+                let templateButton = document.createElement('div');
+                templateButton.className = 'button hv-add-template';
+                templateButton.innerText = '« вставить шаблон';
+                templateButton.title = 'Вставить шаблон';
+                templateButton.addEventListener('click', function () {
+                  fillInput(input, changeList[mask].defaultCode);
+                  changeMaskForm(mask, input.value);
+                });
+                label.insertBefore(templateButton, label.querySelector('b'));
+              }
+
+              if (Array.isArray(code)) {
+                const templateSelect = document.createElement('select');
+                templateSelect.className = 'button hv-add-template';
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.selected = true;
+                defaultOption.text = 'Вставить шаблон';
+                templateSelect.appendChild(defaultOption);
+                code.forEach(item => {
+                  const option = document.createElement('option');
+                  option.value = item.template;
+                  option.text = item.name;
+                  templateSelect.appendChild(option);
+                });
+                templateSelect.addEventListener('change', event => {
+                  const value = event.target.value;
+                  fillInput(input, value);
+                  changeMaskForm(mask, input.value);
+                })
+                label.insertBefore(templateSelect, label.querySelector('b'));
+              }
             }
             li.appendChild(input);
             form.appendChild(li);
