@@ -203,9 +203,10 @@ const hvScriptSet = {
                   fieldEl.querySelector('a').innerText = linkContent;
 
                   if (change === 'author') {
-                    fieldEl.querySelector('a').href = fieldEl.querySelector('a').href.includes('profile')
-                      ? "javascript:to('" + linkContent + "')"
-                      : fieldEl.querySelector('a').href;
+                    const nickLink = fieldEl.querySelector('a');
+                    nickLink.href = nickLink.href.includes('profile')
+                      ? nickLink.href
+                      : "javascript:to('" + linkContent + "')";
                     $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + linkContent + "', " + changedPosts[_i].postId.slice(1) + ")");
                   }
                   break;
