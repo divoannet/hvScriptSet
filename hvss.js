@@ -57,9 +57,7 @@ const hvScriptSet = {
 
     let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
 
-    let prevMasks = [];
-
-    getStorageMask().then(maskList => prevMasks = maskList);
+    let prevMasks = getStorageMask() !== '' ? getStorageMask().split('|splitKey|') : [];
 
     let posts = [];
 
@@ -415,7 +413,7 @@ const hvScriptSet = {
                 background: rgba(0, 0, 0, .4);
                 cursor: pointer;
             }
-
+            
             #mask_dialog .inner {
                 cursor: default;
                 margin: 0;
@@ -428,11 +426,11 @@ const hvScriptSet = {
                 background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");
                 padding: 8px;
             }
-
+            
             #mask_dialog .inner * {
                 box-sizing: border-box;
             }
-
+            
             #mask_dialog .inner .hv-mask-dialog-title {
                 text-align: center;
                 font-weight: 700;
@@ -440,7 +438,7 @@ const hvScriptSet = {
                 line-height: 34px;
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-error-list {
                 padding: 8px;
                 margin: 8px;
@@ -448,13 +446,13 @@ const hvScriptSet = {
                 color: #BD0909;
                 border: solid 1px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block {
                 display: flex;
                 justify-content: space-between;
                 align-items: stretch;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-preview-block {
                 flex: 0 0 120px;
                 text-align: center;
@@ -462,61 +460,61 @@ const hvScriptSet = {
                 overflow: hidden;
                 word-break: break-word;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-preview-block > div {
                 padding: 3px 0;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-preview-block .hv-preview-avatar img {
                 max-width: 100px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block label {
                 display: block;
                 margin-bottom: px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block label:after {
                 content: "";
                 display: table;
                 clear: both;
                 margin-bottom: 2px;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-description {
                 font-size: .9em;
                 color: #999;
                 font-style: italic;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-add-template {
                 cursor: pointer;
                 float: right;
                 padding: 2px 4px;
                 border: solid 1px #ccc;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block input,
             #mask_dialog .inner .hv-mask-block .hv-form-block textarea {
                 width: 100%;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field {
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field + .hv-mask-field {
                 margin-top: 10px;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage {
                 flex: 0 1 140px;
                 display: flex;
@@ -527,22 +525,22 @@ const hvScriptSet = {
                 flex-wrap: wrap;
                 list-style: none;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage.hidden {
                 display: none;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element {
                 width: 60px;
                 padding: 4px;
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element img {
                 max-width: 100%;
                 cursor: pointer;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip {
                 position: absolute;
                 top: 4px;
@@ -555,32 +553,32 @@ const hvScriptSet = {
                 border: solid 1px #ccc;
                 display: none;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element > img:hover + .hv-mask-tooltip {
                 display: block;
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip > * {
                 zoom: .7
             }
-
+            
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-delete-mask {
                 display: block;
                 font-size: 10px;
                 text-align: center;
                 cursor: pointer;
             }
-
+            
             #mask_dialog .inner .hv-control {
                 padding: 8px;
                 text-align: center;
                 position: relative;
             }
-
+            
             #mask_dialog .inner .hv-control input + input {
                 margin-left: 10px;
             }
-
+            
             #mask_dialog .inner .hv-control .hv-clear-storage {
                 position: absolute;
                 right: 0;
@@ -965,7 +963,7 @@ const hvScriptSet = {
       maskStore.innerHTML = '';
 
       let _loop2 = function _loop2(mask) {
-        let mymask = prevMasks[mask];
+        let mymask = JSON.parse(prevMasks[mask]);
         let li = document.createElement('li');
         li.className = 'hv-mask-element';
         let tempavatar = mymask['avatar'] ? mymask['avatar'].value : defaultAvatar;
@@ -1009,8 +1007,9 @@ const hvScriptSet = {
     function insertMask() {
       if (Object.keys(tmpMask).length > 0) {
         insert(getStrMask());
-        const tempMask = JSON.stringify(tmpMask);
+        let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
+          prevMasks = getStorageMask().split('|splitKey|');
           if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
             if (prevMasks.length > 5) {
               prevMasks.splice(0, 1);
@@ -1019,14 +1018,13 @@ const hvScriptSet = {
             prevMasks.splice(hasMaskInSrorage(prevMasks, tmpMask), 1);
           }
         }
-        prevMasks.push(tmpMask);
-        const newPrevMasks = prevMasks.map(item => JSON.stringify(item));
+        prevMasks.push(JSON.stringify(tmpMask));
         $.post('/api.php',
           {
             method: 'storage.set',
             token: ForumAPITicket,
             key: 'maskListUser',
-            value: encodeURI(newPrevMasks.join('|splitKey|'))
+            value: encodeURI(prevMasks.join('|splitKey|'))
           }
         );
         getMaskStorage(prevMasks);
@@ -1038,7 +1036,7 @@ const hvScriptSet = {
     function hasMaskInSrorage(storage, item) {
       let res = -1;
       for (let i = 0; i < storage.length; i++) {
-        let obj = storage[i];
+        let obj = JSON.parse(storage[i]);
         if (Object.keys(obj).length === Object.keys(item).length) {
           let counter = 0;
           for (let k in obj) {
@@ -1257,8 +1255,9 @@ const hvScriptSet = {
         false;
     }
 
-    async function getStorageMask() {
-      const {response} = await $.ajax({
+    function getStorageMask() {
+      let mask = $.ajax({
+        async: false,
         url: '/api.php',
         data: {
           method: 'storage.get',
@@ -1266,9 +1265,9 @@ const hvScriptSet = {
         }
       });
 
-      return response
-        ? decodeURI(response.storage.data.maskListUser).split('|splitKey|').map(item => JSON.parse(item))
-        : [];
+      return JSON.parse(mask.responseText).response &&
+        JSON.parse(mask.responseText).response.storage.data.maskListUser ?
+        decodeURI(JSON.parse(mask.responseText).response.storage.data.maskListUser) : '';
     }
 
     function getClearedPost(post, chList) {
