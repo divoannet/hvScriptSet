@@ -1,4 +1,4 @@
-#hvScriptSet
+# hvScriptSet
 
 Скрипт предназначен для форумов на сервисах Mybb и QuadroBoards.
 

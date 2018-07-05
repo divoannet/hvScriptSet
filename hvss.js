@@ -1,17 +1,18 @@
-"use strict";
+﻿"use strict";
 
 /**
  * hvScriptSet
- * Version: 1.0.10
+ * Version: 1.0.12
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Исправлен баг с маской для удалённых пользователей
- * 2. Поправлена совместимость со скриптом кликабельности ников
+ * 1. Имя маски проставляется в обращении и цитате
+ * 2. Минорные улучшения
+ * 3. Для каждого поля ЛЗ можно указать несколько шаблонов для заполнения
  */
 
-let hvScriptSet = {
+const hvScriptSet = {
 
   addMask: function (opt) {
     let changeList = {
@@ -42,38 +43,23 @@ let hvScriptSet = {
         tag: 'sign,sgn',
         class: 'post-sig',
         type: 'signature'
-      }
+      },
+      ...opt.changeList
     };
-    if (opt.changeList) {
-      for (let key in opt.changeList) {
-        if (opt.changeList.hasOwnProperty(key)) {
-          if (changeList[key]) {
-            for (let i in changeList[key]) {
-              if (opt.changeList[key][i]) {
-                changeList[key][i] = opt.changeList[key][i];
-              }
-            }
-          } else {
-            changeList[key] = opt.changeList[key];
-            if (!opt.changeList[key].type) {
-              changeList[key].type = 'html';
-            }
-          }
-        }
-      }
-    }
 
     let tmpMask = {};
     let previewForm = {};
     let errorList = {};
 
-    let userFields = opt.userFields ? opt.userFields : ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
+    let userFields = opt.userFields || ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
       'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
     let allTagsList = getTagList();
 
     let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
 
-    let prevMasks = getStorageMask() !== '' ? getStorageMask().split('|splitKey|') : [];
+    let prevMasks = [];
+
+    getStorageMask();
 
     let posts = [];
 
@@ -159,7 +145,7 @@ let hvScriptSet = {
                 changedPosts[_i].changeList[change].type = 'text';
               }
               if (change !== 'signature' && !changedPosts[_i].profile.getElementsByClassName(changedPosts[_i]
-                  .changeList[change].field)[0]) {
+                .changeList[change].field)[0]) {
                 let _fieldIndex = userFields.indexOf(changedPosts[_i].changeList[change].field);
                 let _block = document.createElement('li');
                 _block.className = thisChanges[change].field;
@@ -203,6 +189,7 @@ let hvScriptSet = {
                   switch (change) {
                     case 'author':
                       fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
+                      $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + _content + "', " + changedPosts[_i].postId.slice(1) + ")");
                       break;
                     case 'title':
                       fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
@@ -212,10 +199,18 @@ let hvScriptSet = {
                   }
                   break;
                 case 'link':
-                  fieldEl.querySelector('a').innerText =
-                    changedPosts[_i].changeList[change].content.length > 25 ?
-                      changedPosts[_i].changeList[change].content.slice(0, 25) :
-                      changedPosts[_i].changeList[change].content;
+                  var linkContent = changedPosts[_i].changeList[change].content.length > 25 ?
+                    changedPosts[_i].changeList[change].content.slice(0, 25) :
+                    changedPosts[_i].changeList[change].content
+                  fieldEl.querySelector('a').innerText = linkContent;
+
+                  if (change === 'author') {
+                    const nickLink = fieldEl.querySelector('a');
+                    nickLink.href = nickLink.href.includes('profile')
+                      ? nickLink.href
+                      : "javascript:to('" + linkContent + "')";
+                    $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + linkContent + "', " + changedPosts[_i].postId.slice(1) + ")");
+                  }
                   break;
                 case 'signature':
                   if (GroupID !== '3') {
@@ -265,7 +260,9 @@ let hvScriptSet = {
       let text = document.querySelector('.post-content');
       if (!text) return;
       let tags = getTags(text.innerHTML);
-      text.innerHTML = getClearedPost(text, tags);
+      if (Object.keys(tags).length) {
+        text.innerHTML = getClearedPost(text, tags);
+      }
     }
 
     function getTags(text) {
@@ -418,7 +415,7 @@ let hvScriptSet = {
                 background: rgba(0, 0, 0, .4);
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner {
                 cursor: default;
                 margin: 0;
@@ -431,11 +428,11 @@ let hvScriptSet = {
                 background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");
                 padding: 8px;
             }
-            
+
             #mask_dialog .inner * {
                 box-sizing: border-box;
             }
-            
+
             #mask_dialog .inner .hv-mask-dialog-title {
                 text-align: center;
                 font-weight: 700;
@@ -443,7 +440,7 @@ let hvScriptSet = {
                 line-height: 34px;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-error-list {
                 padding: 8px;
                 margin: 8px;
@@ -451,13 +448,13 @@ let hvScriptSet = {
                 color: #BD0909;
                 border: solid 1px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block {
                 display: flex;
                 justify-content: space-between;
                 align-items: stretch;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block {
                 flex: 0 0 120px;
                 text-align: center;
@@ -465,61 +462,61 @@ let hvScriptSet = {
                 overflow: hidden;
                 word-break: break-word;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block > div {
                 padding: 3px 0;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block .hv-preview-avatar img {
                 max-width: 100px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block label {
                 display: block;
                 margin-bottom: px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block label:after {
                 content: "";
                 display: table;
                 clear: both;
                 margin-bottom: 2px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-description {
                 font-size: .9em;
                 color: #999;
                 font-style: italic;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-add-template {
                 cursor: pointer;
                 float: right;
                 padding: 2px 4px;
                 border: solid 1px #ccc;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block input,
             #mask_dialog .inner .hv-mask-block .hv-form-block textarea {
                 width: 100%;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field {
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field + .hv-mask-field {
                 margin-top: 10px;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage {
                 flex: 0 1 140px;
                 display: flex;
@@ -530,22 +527,22 @@ let hvScriptSet = {
                 flex-wrap: wrap;
                 list-style: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage.hidden {
                 display: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element {
                 width: 60px;
                 padding: 4px;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element img {
                 max-width: 100%;
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip {
                 position: absolute;
                 top: 4px;
@@ -558,32 +555,32 @@ let hvScriptSet = {
                 border: solid 1px #ccc;
                 display: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element > img:hover + .hv-mask-tooltip {
                 display: block;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip > * {
                 zoom: .7
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-delete-mask {
                 display: block;
                 font-size: 10px;
                 text-align: center;
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner .hv-control {
                 padding: 8px;
                 text-align: center;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-control input + input {
                 margin-left: 10px;
             }
-            
+
             #mask_dialog .inner .hv-control .hv-clear-storage {
                 position: absolute;
                 right: 0;
@@ -808,7 +805,7 @@ let hvScriptSet = {
 
       let _loop = function _loop(mask) {
         if (changeList.hasOwnProperty(mask)) {
-          (function() {
+          (function () {
             let li = document.createElement('div');
             li.className = 'hv-mask-field ' + mask;
             let input = void 0;
@@ -845,15 +842,41 @@ let hvScriptSet = {
             }
             li.appendChild(label);
             if (changeList[mask].defaultCode) {
-              let templateButton = document.createElement('div');
-              templateButton.className = 'button hv-add-template';
-              templateButton.innerText = '« вставить шаблон';
-              templateButton.title = 'Вставить шаблон';
-              templateButton.addEventListener('click', function() {
-                fillInput(input, changeList[mask].defaultCode);
-                changeMaskForm(mask, input.value);
-              });
-              label.insertBefore(templateButton, label.querySelector('b'));
+              const code = changeList[mask].defaultCode;
+
+              if (typeof code === 'string') {
+                let templateButton = document.createElement('div');
+                templateButton.className = 'button hv-add-template';
+                templateButton.innerText = '« вставить шаблон';
+                templateButton.title = 'Вставить шаблон';
+                templateButton.addEventListener('click', function () {
+                  fillInput(input, changeList[mask].defaultCode);
+                  changeMaskForm(mask, input.value);
+                });
+                label.insertBefore(templateButton, label.querySelector('b'));
+              }
+
+              if (Array.isArray(code)) {
+                const templateSelect = document.createElement('select');
+                templateSelect.className = 'button hv-add-template';
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.selected = true;
+                defaultOption.text = 'Вставить шаблон';
+                templateSelect.appendChild(defaultOption);
+                code.forEach(item => {
+                  const option = document.createElement('option');
+                  option.value = item.template;
+                  option.text = item.name;
+                  templateSelect.appendChild(option);
+                });
+                templateSelect.addEventListener('change', event => {
+                  const value = event.target.value;
+                  fillInput(input, value);
+                  changeMaskForm(mask, input.value);
+                })
+                label.insertBefore(templateSelect, label.querySelector('b'));
+              }
             }
             li.appendChild(input);
             form.appendChild(li);
@@ -932,7 +955,8 @@ let hvScriptSet = {
     }
 
     function getMaskStorage(prevMasks) {
-      let maskDialog = document.getElementById('mask_dialog');
+      const maskDialog = document.getElementById('mask_dialog');
+      if (!maskDialog) return;
       let maskStore = maskDialog.querySelector('.hv-masks-storage');
       if (prevMasks.length > 0) {
         maskStore.className = maskStore.className.replace(/ hidden/gi, '');
@@ -988,7 +1012,6 @@ let hvScriptSet = {
         insert(getStrMask());
         let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
-          prevMasks = getStorageMask().split('|splitKey|');
           if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
             if (prevMasks.length > 5) {
               prevMasks.splice(0, 1);
@@ -1241,12 +1264,16 @@ let hvScriptSet = {
         data: {
           method: 'storage.get',
           key: 'maskListUser'
+        },
+        success: function (result) {
+          const response = result.response;
+
+          if (response) {
+            prevMasks = decodeURI(response.storage.data.maskListUser).split('|splitKey|');
+            getMaskStorage();
+          }
         }
       });
-
-      return JSON.parse(mask.responseText).response &&
-      JSON.parse(mask.responseText).response.storage.data.maskListUser ?
-        decodeURI(JSON.parse(mask.responseText).response.storage.data.maskListUser) : '';
     }
 
     function getClearedPost(post, chList) {
