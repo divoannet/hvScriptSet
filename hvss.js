@@ -57,7 +57,9 @@ const hvScriptSet = {
 
     let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
 
-    let prevMasks = getStorageMask() !== '' ? getStorageMask().split('|splitKey|') : [];
+    let prevMasks = [];
+
+    getStorageMask();
 
     let posts = [];
 
@@ -413,7 +415,7 @@ const hvScriptSet = {
                 background: rgba(0, 0, 0, .4);
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner {
                 cursor: default;
                 margin: 0;
@@ -426,11 +428,11 @@ const hvScriptSet = {
                 background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");
                 padding: 8px;
             }
-            
+
             #mask_dialog .inner * {
                 box-sizing: border-box;
             }
-            
+
             #mask_dialog .inner .hv-mask-dialog-title {
                 text-align: center;
                 font-weight: 700;
@@ -438,7 +440,7 @@ const hvScriptSet = {
                 line-height: 34px;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-error-list {
                 padding: 8px;
                 margin: 8px;
@@ -446,13 +448,13 @@ const hvScriptSet = {
                 color: #BD0909;
                 border: solid 1px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block {
                 display: flex;
                 justify-content: space-between;
                 align-items: stretch;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block {
                 flex: 0 0 120px;
                 text-align: center;
@@ -460,61 +462,61 @@ const hvScriptSet = {
                 overflow: hidden;
                 word-break: break-word;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block > div {
                 padding: 3px 0;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-preview-block .hv-preview-avatar img {
                 max-width: 100px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block {
                 flex: 1 1 auto;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block label {
                 display: block;
                 margin-bottom: px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block label:after {
                 content: "";
                 display: table;
                 clear: both;
                 margin-bottom: 2px;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-description {
                 font-size: .9em;
                 color: #999;
                 font-style: italic;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-add-template {
                 cursor: pointer;
                 float: right;
                 padding: 2px 4px;
                 border: solid 1px #ccc;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block input,
             #mask_dialog .inner .hv-mask-block .hv-form-block textarea {
                 width: 100%;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field {
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field + .hv-mask-field {
                 margin-top: 10px;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage {
                 flex: 0 1 140px;
                 display: flex;
@@ -525,22 +527,22 @@ const hvScriptSet = {
                 flex-wrap: wrap;
                 list-style: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage.hidden {
                 display: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element {
                 width: 60px;
                 padding: 4px;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element img {
                 max-width: 100%;
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip {
                 position: absolute;
                 top: 4px;
@@ -553,32 +555,32 @@ const hvScriptSet = {
                 border: solid 1px #ccc;
                 display: none;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element > img:hover + .hv-mask-tooltip {
                 display: block;
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip > * {
                 zoom: .7
             }
-            
+
             #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-delete-mask {
                 display: block;
                 font-size: 10px;
                 text-align: center;
                 cursor: pointer;
             }
-            
+
             #mask_dialog .inner .hv-control {
                 padding: 8px;
                 text-align: center;
                 position: relative;
             }
-            
+
             #mask_dialog .inner .hv-control input + input {
                 margin-left: 10px;
             }
-            
+
             #mask_dialog .inner .hv-control .hv-clear-storage {
                 position: absolute;
                 right: 0;
@@ -953,7 +955,8 @@ const hvScriptSet = {
     }
 
     function getMaskStorage(prevMasks) {
-      let maskDialog = document.getElementById('mask_dialog');
+      const maskDialog = document.getElementById('mask_dialog');
+      if (!maskDialog) return;
       let maskStore = maskDialog.querySelector('.hv-masks-storage');
       if (prevMasks.length > 0) {
         maskStore.className = maskStore.className.replace(/ hidden/gi, '');
@@ -1009,7 +1012,6 @@ const hvScriptSet = {
         insert(getStrMask());
         let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
-          prevMasks = getStorageMask().split('|splitKey|');
           if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
             if (prevMasks.length > 5) {
               prevMasks.splice(0, 1);
@@ -1262,12 +1264,16 @@ const hvScriptSet = {
         data: {
           method: 'storage.get',
           key: 'maskListUser'
+        },
+        success: function (result) {
+          const response = result.response;
+
+          if (response) {
+            prevMasks = decodeURI(response.storage.data.maskListUser).split('|splitKey|');
+            getMaskStorage();
+          }
         }
       });
-
-      return JSON.parse(mask.responseText).response &&
-        JSON.parse(mask.responseText).response.storage.data.maskListUser ?
-        decodeURI(JSON.parse(mask.responseText).response.storage.data.maskListUser) : '';
     }
 
     function getClearedPost(post, chList) {
