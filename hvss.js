@@ -77,7 +77,7 @@ const hvScriptSet = {
 
         let userId = '1';
 
-        if (UserID === 1) {
+        if (GroupID === 3) {
           const postUserNameLink = postProfile.querySelector('.pa-author a');
           if (postUserNameLink && postUserNameLink.href.includes('/profile.php')) {
             userId = postUserNameLink.href.split('=')[1];
