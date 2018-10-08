@@ -189,7 +189,7 @@ const hvScriptSet = {
                   switch (change) {
                     case 'author':
                       fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
-                      $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + _content + "', " + changedPosts[_i].postId.slice(1) + ")");
+                      $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + _content.replace(/\'/i, '\\\'') + "', " + changedPosts[_i].postId.slice(1) + ")");
                       break;
                     case 'title':
                       fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
@@ -208,8 +208,8 @@ const hvScriptSet = {
                     const nickLink = fieldEl.querySelector('a');
                     nickLink.href = nickLink.href.includes('profile')
                       ? nickLink.href
-                      : "javascript:to('" + linkContent + "')";
-                    $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + linkContent + "', " + changedPosts[_i].postId.slice(1) + ")");
+                      : "javascript:to('" + linkContent.replace(/\'/i, '\\\'') + "')";
+                    $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + linkContent.replace(/\'/i, '\\\'') + "', " + changedPosts[_i].postId.slice(1) + ")");
                   }
                   break;
                 case 'signature':
