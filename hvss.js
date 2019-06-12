@@ -2,14 +2,13 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.12
+ * Version: 1.0.13
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Имя маски проставляется в обращении и цитате
- * 2. Минорные улучшения
- * 3. Для каждого поля ЛЗ можно указать несколько шаблонов для заполнения
+ * 1. Поправлено ограничение использования скрипта вообще, если указан хоть один forumAccess
+ * 2. На странице редактирования сообщения снова можно добавлять полную маску
  */
 
 const hvScriptSet = {
@@ -218,12 +217,12 @@ const hvScriptSet = {
                       let signEl = document.createElement('dl');
                       signEl.className = 'post-sig';
                       signEl.innerHTML = `
-                                                <dl class="post-sig">
-                                                  <dt>
-                                                    <span>Подпись автора</span>
-                                                  </dt>
-                                                  <dd></dd>
-                                                </dl>`;
+                        <dl class="post-sig">
+                          <dt>
+                            <span>Подпись автора</span>
+                          </dt>
+                          <dd></dd>
+                        </dl>`;
                       changedPosts[_i].text.appendChild(signEl);
                       changedPosts[_i].signature = signEl.querySelector('.post-sig dd');
                     }
@@ -1300,23 +1299,28 @@ const hvScriptSet = {
 
     function getAccessByForumName() {
       if (GroupID === 1 || GroupID === 2) return 'extended';
+
       const crumbs = document.getElementById('pun-crumbs1');
-      const link = crumbs.innerHTML.match(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi).pop();
-      let name = link.replace(/\/viewforum\.php\?id=(\d*?)">(.*?)<\/a>/gi, '$2');
+      const crumbLinks = crumbs.querySelectorAll('a[href*="viewforum"]');
+      const link = crumbLinks[crumbLinks.length-1];
+      let name = link.innerText;
       name = getClearedForumName(name);
+
       if ((opt.forumAccessExtended && opt.forumAccessExtended[name])) {
-        if (opt.forumAccessExtended[name].indexOf(GroupTitle) + 1) {
+        if (opt.forumAccessExtended[name].includes(GroupTitle)) {
           return 'extended';
         }
-      } else if (opt.forumAccess && opt.forumAccess[name]) {
-        if (opt.forumAccess[name].indexOf(GroupTitle) + 1) {
+      }
+      if (opt.forumAccess && opt.forumAccess[name]) {
+        if (opt.forumAccess[name].includes(GroupTitle)) {
           return 'common';
         }
-      } else if (!opt.forumAccess && GroupID !== 3) {
-        return 'common';
-      } else {
-        return 'none';
       }
+      if (!opt.forumAccess && GroupID !== 3) {
+        return 'common';
+      }
+
+      return null;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
