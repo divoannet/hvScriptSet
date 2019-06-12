@@ -406,7 +406,7 @@ const hvScriptSet = {
                 align-content: center;
                 justify-content: center;
                 align-items: center;
-                z-index: 10;
+                z-index: 1000;
                 width: 100%;
                 height: 100%;
                 left: 0;
@@ -894,10 +894,7 @@ const hvScriptSet = {
 
       let userMasks = document.createElement('ul');
       userMasks.className = 'hv-masks-storage';
-      if (prevMasks.length > 0) {
-      } else {
-        userMasks.className += ' hidden';
-      }
+      userMasks.classList.toggle('hidden', prevMasks.length === 0);
 
       let block = document.createElement('div');
       block.className = 'hv-mask-block';
@@ -957,11 +954,7 @@ const hvScriptSet = {
       const maskDialog = document.getElementById('mask_dialog');
       if (!maskDialog) return;
       let maskStore = maskDialog.querySelector('.hv-masks-storage');
-      if (prevMasks.length > 0) {
-        maskStore.className = maskStore.className.replace(/ hidden/gi, '');
-      } else {
-        maskStore.className += ' hidden';
-      }
+      maskStore.classList.toggle('hidden', prevMasks.length === 0);
       maskStore.innerHTML = '';
 
       let _loop2 = function _loop2(mask) {
@@ -1102,7 +1095,7 @@ const hvScriptSet = {
       previewForm.innerHTML = '';
       for (let mask in changeList) {
         if (changeList.hasOwnProperty(mask)) {
-          let div = document.createElement('div');
+          const div = document.createElement('div');
           div.className = `hv-preview-${mask}`;
           switch (mask) {
             case 'author':
@@ -1131,18 +1124,16 @@ const hvScriptSet = {
 
     function getStrMask() {
       let str = '';
-      for (let change in tmpMask) {
-        if (tmpMask.hasOwnProperty(change)) {
-          str += `[${tmpMask[change].tag}]${tmpMask[change].value}[/${tmpMask[change].tag}]`;
-        }
-      }
+      Object.keys(tmpMask).forEach(change => {
+        str += `[${tmpMask[change].tag}]${tmpMask[change].value}[/${tmpMask[change].tag}]`;
+      });
       return str;
     }
 
-    let forbiddenTags = ['input', 'button', 'script', 'iframe', 'frame', 'style', 'audio', 'video', 'form',
+    const forbiddenTags = ['input', 'button', 'script', 'iframe', 'frame', 'style', 'audio', 'video', 'form',
       'footer', 'header', 'head', 'html', 'map', 'select', 'textarea', 'xmp', 'object', 'embed',
       'var', 'meta'];
-    let forbiddenEvents = ['onblur', 'onchange', 'onclick', 'ondblclick', 'onfocus', 'onkeydown', 'onkeypress',
+    const forbiddenEvents = ['onblur', 'onchange', 'onclick', 'ondblclick', 'onfocus', 'onkeydown', 'onkeypress',
       'onkeyup', 'onload', 'onmousedown', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onreset',
       'onselect', 'onscroll', 'onsubmit', 'onunload', 'javascript', 'onerror', 'oninput', 'onafterprint',
       'onbeforeprint', 'onbeforeunload', 'onhashchange', 'onmessage', 'onoffline', 'ononline', 'onpagehide',
