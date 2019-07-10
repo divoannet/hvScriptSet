@@ -9,3 +9,4 @@
 *.log
 
 *.min.js
+package-lock.json
