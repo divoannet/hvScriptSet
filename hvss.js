@@ -2,13 +2,12 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.13
+ * Version: 1.0.14
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Поправлено ограничение использования скрипта вообще, если указан хоть один forumAccess
- * 2. На странице редактирования сообщения снова можно добавлять полную маску
+ * 1. Поправлен баг с масками удалённых профилей
  */
 
 const hvScriptSet = {
@@ -83,8 +82,10 @@ const hvScriptSet = {
           }
         } else {
           const postProfileLinks = posts[i].querySelector('.post-links');
-          let postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
-          userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
+          if (postProfileLinks) {
+            const postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
+            userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
+          }
         }
 
         if (Object.keys(postChangeList).length !== 0) {
