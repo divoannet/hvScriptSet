@@ -7,7 +7,8 @@
  * license: MIT
  *
  * Что нового:
- * 1. Поправлен баг с масками удалённых профилей
+ * 1. Стили переехали в отдельный файл
+ * 2. Небольшие изменения под обновления сервиса
  */
 
 const hvScriptSet = {
@@ -55,6 +56,8 @@ const hvScriptSet = {
 
     let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
 
+    const maskLimit = opt.maskLimit || 6;
+
     let prevMasks = [];
 
     getStorageMask();
@@ -72,21 +75,7 @@ const hvScriptSet = {
         const postText = postEl.innerHTML;
         const postSignature = posts[i].querySelector('.post-sig dd');
         const postChangeList = getTags(postText);
-
-        let userId = '1';
-
-        if (GroupID === 3) {
-          const postUserNameLink = postProfile.querySelector('.pa-author a');
-          if (postUserNameLink && postUserNameLink.href.includes('/profile.php')) {
-            userId = postUserNameLink.href.split('=')[1];
-          }
-        } else {
-          const postProfileLinks = posts[i].querySelector('.post-links');
-          if (postProfileLinks) {
-            const postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
-            userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
-          }
-        }
+        const userId = posts[i].dataset.userId;
 
         if (Object.keys(postChangeList).length !== 0) {
           changedPosts[i] = {
@@ -400,8 +389,9 @@ const hvScriptSet = {
     }
 
     function getStyle() {
-      let style = document.createElement('style');
-      style.src = 'https://forumstatic.ru/files/0017/95/29/14188.css';
+      let style = document.createElement('link');
+      style.rel = 'stylesheet';
+      style.href = 'https://forumstatic.ru/files/0017/95/29/14188.css';
 
       let docstyle = document.head.querySelector('link[href*="style"]');
       document.head.insertBefore(style, docstyle);
@@ -820,7 +810,7 @@ const hvScriptSet = {
         let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
           if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
-            if (prevMasks.length > 5) {
+            if (prevMasks.length >= maskLimit) {
               prevMasks.splice(0, 1);
             }
           } else {
