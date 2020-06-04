@@ -1315,7 +1315,24 @@ const hvScriptSet = {
       return null;
     }
 
+    function notifyAdmin() {
+      if (GroupID !== 1) return;
+      var prevTime = localStorage.getItem('hvssUpdateNotificationTime') || 0;
+      var nowTime = Date.now();
+
+      if (nowTime - prevTime < 86400000) return;
+
+      $.jGrowl('Сервис анонсировал <a href="https://forum.mybb.ru/viewtopic.php?id=39134#p955012" target="_blank">поддержку https</a>. Скрипт маски перестанет работать через этот протокол, поэтому поменяйте <a href="https://forum.mybb.ru/viewtopic.php?id=31044&p=21#p890211" target="_blank">ссылку на него</a> в настройках своего форума.', {
+        header: 'Обновление скрипта маски',
+        sticky: true,
+        close: function() {
+          localStorage.setItem('hvssUpdateNotificationTime', nowTime);
+        }
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+      notifyAdmin();
       if (FORUM.topic) {
         getPosts();
         if (GroupID !== 3) {
