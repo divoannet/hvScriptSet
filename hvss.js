@@ -9,6 +9,7 @@
  * Что нового:
  * 1. Стили переехали в отдельный файл
  * 2. Небольшие изменения под обновления сервиса
+ * 3. Теперь по умолчанию можно хранить до 20 масок, есть настройка для изменения лимита
  */
 
 const hvScriptSet = {
@@ -54,9 +55,9 @@ const hvScriptSet = {
       'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
     let allTagsList = getTagList();
 
-    let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
+    let defaultAvatar = opt.defaultAvatar || 'https://i.imgur.com/bQuC3S1.png';
 
-    const maskLimit = opt.maskLimit || 6;
+    const maskLimit = opt.maskLimit || 20;
 
     let prevMasks = [];
 
@@ -528,7 +529,7 @@ const hvScriptSet = {
         button.id = 'button-mask';
         button.title = 'Маска профиля';
         button.innerHTML = '<img src="/i/blank.gif">';
-        let bgImage = opt.buttonImage ? opt.buttonImage : 'http://i.imgur.com/ONu0llO.png';
+        let bgImage = opt.buttonImage ? opt.buttonImage : 'https://i.imgur.com/ONu0llO.png';
         button.style.backgroundImage = 'url("' + bgImage + '")';
         form.getElementsByTagName('tr')[0].appendChild(button);
         return button;
@@ -730,19 +731,11 @@ const hvScriptSet = {
       cancelButton.value = 'Отмена';
       cancelButton.addEventListener('click', cancelMask);
 
-      let clearStorageButton = document.createElement('span');
-      clearStorageButton.className = 'hv-clear-storage';
-      clearStorageButton.name = 'clearStorageMask';
-      clearStorageButton.innerText = 'Очистить хранилище';
-      clearStorageButton.title = 'Сбрасывает все маски. Нажать при проблемах сохранения/отображения сохраненных масок.';
-      clearStorageButton.addEventListener('click', clearStorageMask);
-
       let control = document.createElement('div');
       control.className = 'hv-control';
       control.appendChild(okButton);
       control.appendChild(clearButton);
       control.appendChild(cancelButton);
-      control.appendChild(clearStorageButton);
 
       inner.appendChild(title);
       inner.appendChild(errorListBlock);
@@ -769,26 +762,33 @@ const hvScriptSet = {
         let tempavatar = mymask['avatar'] ? mymask['avatar'].value : defaultAvatar;
         let avatar = document.createElement('img');
         avatar.src = tempavatar;
-        let infoBlock = document.createElement('div');
-        infoBlock.className = 'hv-mask-tooltip';
+        let infoBlock = '';
 
         for (let item in changeList) {
           if (changeList.hasOwnProperty(item) && item !== 'avatar' && mymask[item]) {
             if (!checkHtml(mymask[item].value.toString())) {
-              infoBlock.innerHTML += '<div class="' + item + '"><b>' + changeList[item].title + ':</b> ' +
-                mymask[item].value + '</div>';
+              infoBlock += '<div class="' + item + '"><b>' + changeList[item].title + ':</b> ' +
+              mymask[item].value + '</div>';
             }
           }
         }
+
         let deleteMask = document.createElement('a');
         deleteMask.className = 'hv-delete-mask';
         deleteMask.innerText = 'Удалить';
         deleteMask.title = 'Удалить маску из списка';
-        deleteMask.addEventListener('click', () => deleteMaskFromStorage(mask));
+        deleteMask.addEventListener('click', () => deleteMaskFromStorage(mask, li));
         li.appendChild(avatar);
         if ((mymask['avatar'] && Object.keys(mymask).length > 1) ||
           (!mymask['avatar'] && Object.keys(mymask).length > 0)) {
-          li.appendChild(infoBlock);
+            li.dataset.content = infoBlock;
+            $(li).tipsy({
+              title: function() { return this.getAttribute('data-content'); },
+              fade: true,
+              html: true,
+              gravity: 'e',
+              className: 'hv-mask-tooltipsy'
+            });
         }
         li.appendChild(deleteMask);
         avatar.addEventListener('click', () => fillForm(mymask));
@@ -855,7 +855,8 @@ const hvScriptSet = {
       return res;
     }
 
-    function deleteMaskFromStorage(mask) {
+    function deleteMaskFromStorage(mask, li) {
+      $(li).tipsy('hide');
       prevMasks.splice(mask, 1);
       $.post('/api.php',
         {

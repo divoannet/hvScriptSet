@@ -30,7 +30,7 @@
     box-sizing: border-box;
 }
 
-#mask_dialog .inner .hv-mask-dialog-title {
+#mask_dialog .hv-mask-dialog-title {
     text-align: center;
     font-weight: 700;
     font-size: 18px;
@@ -38,7 +38,7 @@
     position: relative;
 }
 
-#mask_dialog .inner .hv-error-list {
+#mask_dialog .hv-error-list {
     padding: 8px;
     margin: 8px;
     background: #DAA396;
@@ -46,76 +46,81 @@
     border: solid 1px;
 }
 
-#mask_dialog .inner .hv-mask-block {
+#mask_dialog .hv-mask-block {
     display: flex;
     justify-content: space-between;
     align-items: stretch;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-preview-block {
+#mask_dialog .hv-preview-block {
     flex: 0 0 120px;
     text-align: center;
     max-width: 120px;
     overflow: hidden;
     word-break: break-word;
+    max-height: 360px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-preview-block > div {
+#mask_dialog .hv-preview-block > div {
     padding: 3px 0;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block {
+#mask_dialog .hv-form-block {
     flex: 1 1 auto;
+    max-height: 360px;
+    overflow-y: auto;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-preview-block .hv-preview-avatar img {
+#mask_dialog .hv-preview-block img {
     max-width: 100px;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block {
+#mask_dialog .hv-form-block {
     flex: 1 1 auto;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block label {
+#mask_dialog .hv-form-block label {
     display: block;
     margin-bottom: px;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block label:after {
+#mask_dialog  .hv-form-block label:after {
     content: "";
     display: table;
     clear: both;
     margin-bottom: 2px;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block .hv-description {
+#mask_dialog .hv-description {
     font-size: .9em;
     color: #999;
     font-style: italic;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block .hv-add-template {
+#mask_dialog .hv-add-template {
     cursor: pointer;
     float: right;
     padding: 2px 4px;
     border: solid 1px #ccc;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block input,
-#mask_dialog .inner .hv-mask-block .hv-form-block textarea {
+#mask_dialog .hv-form-block input,
+#mask_dialog .hv-form-block textarea {
     width: 100%;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field {
+#mask_dialog .hv-mask-field {
     position: relative;
 }
 
-#mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field + .hv-mask-field {
+#mask_dialog .hv-mask-field + .hv-mask-field {
     margin-top: 10px;
 }
 
-#mask_dialog .inner .hv-masks-storage {
-    flex: 0 1 140px;
+#mask_dialog .hv-masks-storage {
+    flex: 0 1 150px;
     display: flex;
     align-items: flex-start;
     align-content: flex-start;
@@ -123,24 +128,27 @@
     padding: 8px;
     flex-wrap: wrap;
     list-style: none;
+    max-height: 360px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-#mask_dialog .inner .hv-masks-storage.hidden {
+#mask_dialog .hv-masks-storage.hidden {
     display: none;
 }
 
-#mask_dialog .inner .hv-masks-storage .hv-mask-element {
+#mask_dialog .hv-mask-element {
     width: 60px;
     padding: 4px;
     position: relative;
 }
 
-#mask_dialog .inner .hv-masks-storage .hv-mask-element img {
+#mask_dialog .hv-mask-element img {
     max-width: 100%;
     cursor: pointer;
 }
 
-#mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip {
+#mask_dialog .hv-mask-tooltip {
     position: absolute;
     top: 4px;
     min-width: 160px;
@@ -153,35 +161,27 @@
     display: none;
 }
 
-#mask_dialog .inner .hv-masks-storage .hv-mask-element > img:hover + .hv-mask-tooltip {
+#mask_dialog .hv-mask-element > img:hover + .hv-mask-tooltip {
     display: block;
 }
 
-#mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip > * {
+#mask_dialog .hv-mask-tooltip > * {
     zoom: .7
 }
 
-#mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-delete-mask {
+#mask_dialog .hv-delete-mask {
     display: block;
     font-size: 10px;
     text-align: center;
     cursor: pointer;
 }
 
-#mask_dialog .inner .hv-control {
+#mask_dialog .hv-control {
     padding: 8px;
     text-align: center;
     position: relative;
 }
 
-#mask_dialog .inner .hv-control input + input {
+#mask_dialog .hv-control input + input {
     margin-left: 10px;
-}
-
-#mask_dialog .inner .hv-control .hv-clear-storage {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    color: #666;
-    cursor: pointer;
 }
