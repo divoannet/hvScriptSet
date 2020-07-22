@@ -715,7 +715,14 @@ const hvScriptSet = {
       okButton.className = 'button';
       okButton.name = 'insertMask';
       okButton.value = 'Вставить маску';
-      okButton.addEventListener('click', insertMask);
+      okButton.addEventListener('click', saveMask);
+
+      let insertButton = document.createElement('input');
+      insertButton.type = 'button';
+      insertButton.className = 'button';
+      insertButton.name = 'insertMask';
+      insertButton.value = 'Вставить без сохранения';
+      insertButton.addEventListener('click', insertMask);
 
       let clearButton = document.createElement('input');
       clearButton.type = 'button';
@@ -734,6 +741,7 @@ const hvScriptSet = {
       let control = document.createElement('div');
       control.className = 'hv-control';
       control.appendChild(okButton);
+      control.appendChild(insertButton);
       control.appendChild(clearButton);
       control.appendChild(cancelButton);
 
@@ -804,9 +812,14 @@ const hvScriptSet = {
       input.value = value;
     }
 
-    function insertMask() {
+    function insertMask () {
+      insert(getStrMask());
+      clearMask();
+      hideMaskDialog();
+    }
+
+    function saveMask() {
       if (Object.keys(tmpMask).length > 0) {
-        insert(getStrMask());
         let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
           if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
@@ -825,10 +838,17 @@ const hvScriptSet = {
             key: 'maskListUser',
             value: encodeURI(prevMasks.join('|splitKey|'))
           }
-        );
-        getMaskStorage(prevMasks);
-        clearMask();
-        hideMaskDialog();
+        )
+        .done(function() {
+          insert(getStrMask());
+          getMaskStorage(prevMasks);
+          clearMask();
+          hideMaskDialog();
+        })
+        .fail(function() {
+          errorList.common = 'Ошибка сохранения, попробуй ещё раз.';
+          showErrors();
+        });
       }
     }
 
