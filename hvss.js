@@ -2,12 +2,14 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.14
+ * Version: 1.0.15
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Поправлен баг с масками удалённых профилей
+ * 1. Стили переехали в отдельный файл
+ * 2. Небольшие изменения под обновления сервиса
+ * 3. Теперь по умолчанию можно хранить до 20 масок, есть настройка для изменения лимита
  */
 
 const hvScriptSet = {
@@ -53,7 +55,9 @@ const hvScriptSet = {
       'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
     let allTagsList = getTagList();
 
-    let defaultAvatar = opt.defaultAvatar || 'http://i.imgur.com/bQuC3S1.png';
+    let defaultAvatar = opt.defaultAvatar || 'https://i.imgur.com/bQuC3S1.png';
+
+    const maskLimit = opt.maskLimit || 20;
 
     let prevMasks = [];
 
@@ -72,21 +76,7 @@ const hvScriptSet = {
         const postText = postEl.innerHTML;
         const postSignature = posts[i].querySelector('.post-sig dd');
         const postChangeList = getTags(postText);
-
-        let userId = '1';
-
-        if (GroupID === 3) {
-          const postUserNameLink = postProfile.querySelector('.pa-author a');
-          if (postUserNameLink && postUserNameLink.href.includes('/profile.php')) {
-            userId = postUserNameLink.href.split('=')[1];
-          }
-        } else {
-          const postProfileLinks = posts[i].querySelector('.post-links');
-          if (postProfileLinks) {
-            const postProfileUserLink = postProfileLinks.querySelector('a[href*="/profile.php"]');
-            userId = postProfileUserLink ? postProfileUserLink.href.split('=')[1] : '1';
-          }
-        }
+        const userId = posts[i].dataset.userId;
 
         if (Object.keys(postChangeList).length !== 0) {
           changedPosts[i] = {
@@ -400,194 +390,9 @@ const hvScriptSet = {
     }
 
     function getStyle() {
-      let style = document.createElement('style');
-      style.innerHTML = `#mask_dialog .hv-bg {
-                position: fixed;
-                display: flex;
-                align-content: center;
-                justify-content: center;
-                align-items: center;
-                z-index: 1000;
-                width: 100%;
-                height: 100%;
-                left: 0;
-                top: 0;
-                background: rgba(0, 0, 0, .4);
-                cursor: pointer;
-            }
-
-            #mask_dialog .inner {
-                cursor: default;
-                margin: 0;
-                width: 760px;
-                max-width: 99%;
-                max-height: 90%;
-                overflow-x: auto;
-                z-index: 100;
-                box-shadow: 0 0 40px #222;
-                background: #F4F5F6 url("http://i.imgur.com/akmlat3.png");
-                padding: 8px;
-            }
-
-            #mask_dialog .inner * {
-                box-sizing: border-box;
-            }
-
-            #mask_dialog .inner .hv-mask-dialog-title {
-                text-align: center;
-                font-weight: 700;
-                font-size: 18px;
-                line-height: 34px;
-                position: relative;
-            }
-
-            #mask_dialog .inner .hv-error-list {
-                padding: 8px;
-                margin: 8px;
-                background: #DAA396;
-                color: #BD0909;
-                border: solid 1px;
-            }
-
-            #mask_dialog .inner .hv-mask-block {
-                display: flex;
-                justify-content: space-between;
-                align-items: stretch;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-preview-block {
-                flex: 0 0 120px;
-                text-align: center;
-                max-width: 120px;
-                overflow: hidden;
-                word-break: break-word;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-preview-block > div {
-                padding: 3px 0;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block {
-                flex: 1 1 auto;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-preview-block .hv-preview-avatar img {
-                max-width: 100px;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block {
-                flex: 1 1 auto;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block label {
-                display: block;
-                margin-bottom: px;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block label:after {
-                content: "";
-                display: table;
-                clear: both;
-                margin-bottom: 2px;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block .hv-description {
-                font-size: .9em;
-                color: #999;
-                font-style: italic;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block .hv-add-template {
-                cursor: pointer;
-                float: right;
-                padding: 2px 4px;
-                border: solid 1px #ccc;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block input,
-            #mask_dialog .inner .hv-mask-block .hv-form-block textarea {
-                width: 100%;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field {
-                position: relative;
-            }
-
-            #mask_dialog .inner .hv-mask-block .hv-form-block .hv-mask-field + .hv-mask-field {
-                margin-top: 10px;
-            }
-
-            #mask_dialog .inner .hv-masks-storage {
-                flex: 0 1 140px;
-                display: flex;
-                align-items: flex-start;
-                align-content: flex-start;
-                justify-content: flex-start;
-                padding: 8px;
-                flex-wrap: wrap;
-                list-style: none;
-            }
-
-            #mask_dialog .inner .hv-masks-storage.hidden {
-                display: none;
-            }
-
-            #mask_dialog .inner .hv-masks-storage .hv-mask-element {
-                width: 60px;
-                padding: 4px;
-                position: relative;
-            }
-
-            #mask_dialog .inner .hv-masks-storage .hv-mask-element img {
-                max-width: 100%;
-                cursor: pointer;
-            }
-
-            #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip {
-                position: absolute;
-                top: 4px;
-                min-width: 160px;
-                right: 60px;
-                padding: 4px;
-                z-index: 5;
-                overflow-y: auto;
-                background: rgba(255, 255, 255, .6);
-                border: solid 1px #ccc;
-                display: none;
-            }
-
-            #mask_dialog .inner .hv-masks-storage .hv-mask-element > img:hover + .hv-mask-tooltip {
-                display: block;
-            }
-
-            #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-mask-tooltip > * {
-                zoom: .7
-            }
-
-            #mask_dialog .inner .hv-masks-storage .hv-mask-element .hv-delete-mask {
-                display: block;
-                font-size: 10px;
-                text-align: center;
-                cursor: pointer;
-            }
-
-            #mask_dialog .inner .hv-control {
-                padding: 8px;
-                text-align: center;
-                position: relative;
-            }
-
-            #mask_dialog .inner .hv-control input + input {
-                margin-left: 10px;
-            }
-
-            #mask_dialog .inner .hv-control .hv-clear-storage {
-                position: absolute;
-                right: 0;
-                bottom: 0;
-                color: #666;
-                cursor: pointer;
-            }`;
+      let style = document.createElement('link');
+      style.rel = 'stylesheet';
+      style.href = 'https://forumstatic.ru/files/0017/95/29/14188.css';
 
       let docstyle = document.head.querySelector('link[href*="style"]');
       document.head.insertBefore(style, docstyle);
@@ -724,7 +529,7 @@ const hvScriptSet = {
         button.id = 'button-mask';
         button.title = 'Маска профиля';
         button.innerHTML = '<img src="/i/blank.gif">';
-        let bgImage = opt.buttonImage ? opt.buttonImage : 'http://i.imgur.com/ONu0llO.png';
+        let bgImage = opt.buttonImage ? opt.buttonImage : 'https://i.imgur.com/ONu0llO.png';
         button.style.backgroundImage = 'url("' + bgImage + '")';
         form.getElementsByTagName('tr')[0].appendChild(button);
         return button;
@@ -910,7 +715,14 @@ const hvScriptSet = {
       okButton.className = 'button';
       okButton.name = 'insertMask';
       okButton.value = 'Вставить маску';
-      okButton.addEventListener('click', insertMask);
+      okButton.addEventListener('click', saveMask);
+
+      let insertButton = document.createElement('input');
+      insertButton.type = 'button';
+      insertButton.className = 'button';
+      insertButton.name = 'insertMask';
+      insertButton.value = 'Вставить без сохранения';
+      insertButton.addEventListener('click', insertMask);
 
       let clearButton = document.createElement('input');
       clearButton.type = 'button';
@@ -926,19 +738,12 @@ const hvScriptSet = {
       cancelButton.value = 'Отмена';
       cancelButton.addEventListener('click', cancelMask);
 
-      let clearStorageButton = document.createElement('span');
-      clearStorageButton.className = 'hv-clear-storage';
-      clearStorageButton.name = 'clearStorageMask';
-      clearStorageButton.innerText = 'Очистить хранилище';
-      clearStorageButton.title = 'Сбрасывает все маски. Нажать при проблемах сохранения/отображения сохраненных масок.';
-      clearStorageButton.addEventListener('click', clearStorageMask);
-
       let control = document.createElement('div');
       control.className = 'hv-control';
       control.appendChild(okButton);
+      control.appendChild(insertButton);
       control.appendChild(clearButton);
       control.appendChild(cancelButton);
-      control.appendChild(clearStorageButton);
 
       inner.appendChild(title);
       inner.appendChild(errorListBlock);
@@ -965,26 +770,33 @@ const hvScriptSet = {
         let tempavatar = mymask['avatar'] ? mymask['avatar'].value : defaultAvatar;
         let avatar = document.createElement('img');
         avatar.src = tempavatar;
-        let infoBlock = document.createElement('div');
-        infoBlock.className = 'hv-mask-tooltip';
+        let infoBlock = '';
 
         for (let item in changeList) {
           if (changeList.hasOwnProperty(item) && item !== 'avatar' && mymask[item]) {
             if (!checkHtml(mymask[item].value.toString())) {
-              infoBlock.innerHTML += '<div class="' + item + '"><b>' + changeList[item].title + ':</b> ' +
-                mymask[item].value + '</div>';
+              infoBlock += '<div class="' + item + '"><b>' + changeList[item].title + ':</b> ' +
+              mymask[item].value + '</div>';
             }
           }
         }
+
         let deleteMask = document.createElement('a');
         deleteMask.className = 'hv-delete-mask';
         deleteMask.innerText = 'Удалить';
         deleteMask.title = 'Удалить маску из списка';
-        deleteMask.addEventListener('click', () => deleteMaskFromStorage(mask));
+        deleteMask.addEventListener('click', () => deleteMaskFromStorage(mask, li));
         li.appendChild(avatar);
         if ((mymask['avatar'] && Object.keys(mymask).length > 1) ||
           (!mymask['avatar'] && Object.keys(mymask).length > 0)) {
-          li.appendChild(infoBlock);
+            li.dataset.content = infoBlock;
+            $(li).tipsy({
+              title: function() { return this.getAttribute('data-content'); },
+              fade: true,
+              html: true,
+              gravity: 'e',
+              className: 'hv-mask-tooltipsy'
+            });
         }
         li.appendChild(deleteMask);
         avatar.addEventListener('click', () => fillForm(mymask));
@@ -1000,13 +812,18 @@ const hvScriptSet = {
       input.value = value;
     }
 
-    function insertMask() {
+    function insertMask () {
+      insert(getStrMask());
+      clearMask();
+      hideMaskDialog();
+    }
+
+    function saveMask() {
       if (Object.keys(tmpMask).length > 0) {
-        insert(getStrMask());
         let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
           if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
-            if (prevMasks.length > 5) {
+            if (prevMasks.length >= maskLimit) {
               prevMasks.splice(0, 1);
             }
           } else {
@@ -1021,10 +838,17 @@ const hvScriptSet = {
             key: 'maskListUser',
             value: encodeURI(prevMasks.join('|splitKey|'))
           }
-        );
-        getMaskStorage(prevMasks);
-        clearMask();
-        hideMaskDialog();
+        )
+        .done(function() {
+          insert(getStrMask());
+          getMaskStorage(prevMasks);
+          clearMask();
+          hideMaskDialog();
+        })
+        .fail(function() {
+          errorList.common = 'Ошибка сохранения, попробуй ещё раз.';
+          showErrors();
+        });
       }
     }
 
@@ -1051,7 +875,8 @@ const hvScriptSet = {
       return res;
     }
 
-    function deleteMaskFromStorage(mask) {
+    function deleteMaskFromStorage(mask, li) {
+      $(li).tipsy('hide');
       prevMasks.splice(mask, 1);
       $.post('/api.php',
         {
