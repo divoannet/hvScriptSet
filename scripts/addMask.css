@@ -185,3 +185,7 @@
 #mask_dialog .hv-control input + input {
     margin-left: 10px;
 }
+
+.hvMaskStr {
+    display: none;
+}
