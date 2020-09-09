@@ -2,20 +2,18 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.15
+ * Version: 1.0.16
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Стили переехали в отдельный файл
- * 2. Небольшие изменения под обновления сервиса
- * 3. Теперь по умолчанию можно хранить до 20 масок, есть настройка для изменения лимита
+ * 1. Поправлен баг с удалением маски
  */
 
 const hvScriptSet = {
 
   addMask: function (opt) {
-    let changeList = {
+    const changeList = {
       'author': {
         title: 'Ник',
         description: 'Только текст',
@@ -51,11 +49,11 @@ const hvScriptSet = {
     let previewForm = {};
     let errorList = {};
 
-    let userFields = opt.userFields || ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
+    const userFields = opt.userFields || ['pa-author', 'pa-title', 'pa-avatar', 'pa-fld1', 'pa-reg',
       'pa-posts', 'pa-respect', 'pa-positive', 'pa-awards', 'pa-gifts'];
-    let allTagsList = getTagList();
+    const allTagsList = getTagList();
 
-    let defaultAvatar = opt.defaultAvatar || 'https://i.imgur.com/bQuC3S1.png';
+    const defaultAvatar = opt.defaultAvatar || 'https://i.imgur.com/bQuC3S1.png';
 
     const maskLimit = opt.maskLimit || 20;
 
@@ -392,7 +390,7 @@ const hvScriptSet = {
     function getStyle() {
       let style = document.createElement('link');
       style.rel = 'stylesheet';
-      style.href = 'https://forumstatic.ru/files/0017/95/29/14188.css';
+      style.href = 'https://forumstatic.ru/files/0017/95/29/25643.css';
 
       let docstyle = document.head.querySelector('link[href*="style"]');
       document.head.insertBefore(style, docstyle);
@@ -791,12 +789,14 @@ const hvScriptSet = {
           (!mymask['avatar'] && Object.keys(mymask).length > 0)) {
             li.dataset.content = infoBlock;
             $(li).tipsy({
-              title: function() { return this.getAttribute('data-content'); },
+              title: function() { return `<div class="hv-mask-tipsy">${this.getAttribute('data-content')}</div>`; },
               fade: true,
               html: true,
               gravity: 'e',
               className: 'hv-mask-tooltipsy'
             });
+        } else {
+          $(li).tipsy();
         }
         li.appendChild(deleteMask);
         avatar.addEventListener('click', () => fillForm(mymask));
@@ -876,7 +876,9 @@ const hvScriptSet = {
     }
 
     function deleteMaskFromStorage(mask, li) {
-      $(li).tipsy('hide');
+      if ($(li).tipsy('getTitle')) {
+        $(li).tipsy('hide');
+      }
       prevMasks.splice(mask, 1);
       $.post('/api.php',
         {

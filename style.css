@@ -185,3 +185,11 @@
 #mask_dialog .hv-control input + input {
     margin-left: 10px;
 }
+
+.hv-mask-tipsy {
+    max-width: 280px;
+}
+
+.post-content .hvmask {
+    display: none;
+}
