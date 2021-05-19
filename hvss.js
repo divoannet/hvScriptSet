@@ -395,7 +395,7 @@ const hvScriptSet = {
     function getStyle() {
       let style = document.createElement('link');
       style.rel = 'stylesheet';
-      style.href = 'https://forumstatic.ru/files/0017/95/29/25643.css?v=17';
+      style.href = 'https://forumstatic.ru/files/0017/95/29/74324.css';
 
       let docstyle = document.head.querySelector('link[href*="style"]');
       document.head.insertBefore(style, docstyle);
