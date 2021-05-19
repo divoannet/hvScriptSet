@@ -10,3 +10,4 @@
 
 *.min.js
 package-lock.json
+yarn.lock

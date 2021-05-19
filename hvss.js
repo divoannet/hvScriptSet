@@ -2,12 +2,12 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.16
+ * Version: 1.0.17
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Поправлен баг с удалением маски
+ * 1. Добавлена поддержка AJAX
  */
 
 const hvScriptSet = {
@@ -177,7 +177,7 @@ const hvScriptSet = {
                   switch (change) {
                     case 'author':
                       fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
-                      $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + _content.replace(/\'/i, '\\\'') + "', " + changedPosts[_i].postId.slice(1) + ")");
+                      $(`#${changedPosts[_i].postId}`).find('.pl-quote a').attr('href', "javascript:quote('" + _content.replace(/\'/i, '\\\'') + "', " + changedPosts[_i].postId.slice(1) + ")");
                       break;
                     case 'title':
                       fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
@@ -245,9 +245,9 @@ const hvScriptSet = {
     }
 
     function hidePreviewTags() {
-      let text = document.querySelector('.post-content');
+      const text = document.querySelector('#post-preview .post-content')
       if (!text) return;
-      let tags = getTags(text.innerHTML);
+      const tags = getTags(text.innerHTML);
       if (Object.keys(tags).length) {
         text.innerHTML = getClearedPost(text, tags);
       }
@@ -1157,5 +1157,7 @@ const hvScriptSet = {
         hideTags();
       }
     });
+    $(document).on('pun_post', () => getPosts());
+    $(document).on('pun_preview', () => hidePreviewTags());
   }
 };
