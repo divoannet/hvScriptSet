@@ -9,6 +9,7 @@
  * Что нового:
  * 1. Добавлена поддержка AJAX
  * 2. Добавлен счётчик сохранённых масок
+ * 3. Исправление некоторых редких ошибок
  */
 
 const hvScriptSet = {
@@ -316,12 +317,15 @@ const hvScriptSet = {
               };
               break;
             default:
+              const isCommonAccess = opt.forumAccess && opt.forumAccess[forumName]
+                  ? opt.forumAccess[forumName].includes(userInfo[id].groupTitle)
+                  : true
+              const isExtendedAccess = opt.forumAccessExtended && opt.forumAccessExtended[forumName]
+                  ? opt.forumAccessExtended[forumName].includes(userInfo[id].groupTitle)
+                  : false
               userInfo[id].access = {
-                'common': opt.forumAccess && opt.forumAccess[forumName] ?
-                  opt.forumAccess[forumName].includes(userInfo[id].groupTitle) : true,
-                'extended': opt.forumAccessExtended && opt.forumAccessExtended[forumName] ?
-                  opt.forumAccessExtended[forumName]
-                    .includes(userInfo[id].groupTitle) : false
+                'common': isExtendedAccess || isCommonAccess,
+                'extended': isExtendedAccess
               };
           }
         }
@@ -1126,7 +1130,7 @@ const hvScriptSet = {
       let name = link.innerText;
       name = getClearedForumName(name);
 
-      if ((opt.forumAccessExtended && opt.forumAccessExtended[name])) {
+      if (opt.forumAccessExtended && opt.forumAccessExtended[name]) {
         if (opt.forumAccessExtended[name].includes(GroupTitle)) {
           return 'extended';
         }
