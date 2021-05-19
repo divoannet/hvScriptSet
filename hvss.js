@@ -8,6 +8,7 @@
  *
  * Что нового:
  * 1. Добавлена поддержка AJAX
+ * 2. Добавлен счётчик сохранённых масок
  */
 
 const hvScriptSet = {
@@ -390,7 +391,7 @@ const hvScriptSet = {
     function getStyle() {
       let style = document.createElement('link');
       style.rel = 'stylesheet';
-      style.href = 'https://forumstatic.ru/files/0017/95/29/25643.css';
+      style.href = 'https://forumstatic.ru/files/0017/95/29/25643.css?v=17';
 
       let docstyle = document.head.querySelector('link[href*="style"]');
       document.head.insertBefore(style, docstyle);
@@ -759,7 +760,7 @@ const hvScriptSet = {
       if (!maskDialog) return;
       let maskStore = maskDialog.querySelector('.hv-masks-storage');
       maskStore.classList.toggle('hidden', prevMasks.length === 0);
-      maskStore.innerHTML = '';
+      maskStore.innerHTML = `<div class="hv-storage-count">масок: ${prevMasks.length}/${maskLimit}</div>`;
 
       let _loop2 = function _loop2(mask) {
         let mymask = JSON.parse(prevMasks[mask]);
