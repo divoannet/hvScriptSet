@@ -226,29 +226,33 @@ const hvScriptSet = {
         }
         let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">([\s\S]*?)?<\/dl>/);
         changedPosts[_i].profile.classList.add('hv-mask');
-        changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
+
+        const hiddenHvBlock = changedPosts[_i].text.querySelector('.hvmask');
+        if (!hiddenHvBlock) {
+          changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
+        }
       }
     }
 
     function hideTags() {
       posts = document.querySelectorAll('.post');
-      for (let i in posts) {
-        if (posts.hasOwnProperty(i)) {
-          let text = posts[i].querySelector('.post-content');
-          for (let tag in allTagsList) {
-            if (allTagsList.hasOwnProperty(tag)) {
-              let pattern =
-                new RegExp('\\[' + allTagsList[tag] + '\\](.*?)\\[\/' + allTagsList[tag] + '\\]', 'gi');
-              text.innerHTML = text.innerHTML.replace(pattern, '');
-            }
-          }
-        }
-      }
+      posts.forEach(post => {
+        const hiddenBlock = post.querySelector('.hvmask');
+        if (hiddenBlock) return;
+        const text = post.querySelector('.post-content');
+        allTagsList.forEach(tag => {
+          let pattern =
+              new RegExp('\\[' + allTagsList[tag] + '\\](.*?)\\[\/' + allTagsList[tag] + '\\]', 'gi');
+          text.innerHTML = text.innerHTML.replace(pattern, '');
+        })
+      })
     }
 
     function hidePreviewTags() {
       const text = document.querySelector('#post-preview .post-content')
       if (!text) return;
+      const hiddenBlock = text.querySelector('.hvmask');
+      if (hiddenBlock) return;
       const tags = getTags(text.innerHTML);
       if (Object.keys(tags).length) {
         text.innerHTML = getClearedPost(text, tags);
@@ -827,12 +831,12 @@ const hvScriptSet = {
       if (Object.keys(tmpMask).length > 0) {
         let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
-          if (!(hasMaskInSrorage(prevMasks, tmpMask) + 1)) {
+          if (!(hasMaskInStorage(prevMasks, tmpMask) + 1)) {
             if (prevMasks.length >= maskLimit) {
               prevMasks.splice(0, 1);
             }
           } else {
-            prevMasks.splice(hasMaskInSrorage(prevMasks, tmpMask), 1);
+            prevMasks.splice(hasMaskInStorage(prevMasks, tmpMask), 1);
           }
         }
         prevMasks.push(JSON.stringify(tmpMask));
@@ -857,7 +861,7 @@ const hvScriptSet = {
       }
     }
 
-    function hasMaskInSrorage(storage, item) {
+    function hasMaskInStorage(storage, item) {
       let res = -1;
       for (let i = 0; i < storage.length; i++) {
         let obj = JSON.parse(storage[i]);
@@ -893,20 +897,6 @@ const hvScriptSet = {
           value: encodeURI(prevMasks.join('|splitKey|'))
         }
       );
-      getMaskStorage(prevMasks);
-    }
-
-    function clearStorageMask() {
-      prevMasks = [];
-      $.ajax({
-        async: false,
-        url: '/api.php',
-        data: {
-          method: 'storage.delete',
-          token: ForumAPITicket,
-          key: 'maskListUser'
-        }
-      });
       getMaskStorage(prevMasks);
     }
 
@@ -960,7 +950,7 @@ const hvScriptSet = {
       Object.keys(tmpMask).forEach(change => {
         str += `[${tmpMask[change].tag}]${tmpMask[change].value}[/${tmpMask[change].tag}]`;
       });
-      return str;
+      return `[block=hvmask]${str}[/block]`;
     }
 
     const forbiddenTags = ['input', 'button', 'script', 'iframe', 'frame', 'style', 'audio', 'video', 'form',
@@ -1163,6 +1153,8 @@ const hvScriptSet = {
       }
     });
     $(document).on('pun_post', () => getPosts());
+    $(document).on('pun_edit', () => getPosts());
     $(document).on('pun_preview', () => hidePreviewTags());
+    $(document).on('pun_preedit', () => hidePreviewTags());
   }
 };
