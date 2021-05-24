@@ -2,14 +2,11 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.17
+ * Version: 1.0.18
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Добавлена поддержка AJAX
- * 2. Добавлен счётчик сохранённых масок
- * 3. Исправление некоторых редких ошибок
  */
 
 const hvScriptSet = {
@@ -69,14 +66,14 @@ const hvScriptSet = {
       posts = document.querySelectorAll('.post');
       let changedPosts = {};
       let changedUsersId = [];
-      for (let i = 0; i < posts.length; i++) {
-        const postEl = posts[i].querySelector('.post-content');
-        const postId = posts[i].getAttribute('id');
-        const postProfile = posts[i].querySelector('.post-author ul');
+      posts.forEach((post, i) => {
+        const postEl = post.querySelector('.post-content');
+        const postId = post.getAttribute('id');
+        const postProfile = post.querySelector('.post-author ul');
         const postText = postEl.innerHTML;
-        const postSignature = posts[i].querySelector('.post-sig dd');
+        const postSignature = post.querySelector('.post-sig dd');
         const postChangeList = getTags(postText);
-        const userId = posts[i].dataset.userId;
+        const userId = post.dataset.userId;
 
         if (Object.keys(postChangeList).length !== 0) {
           changedPosts[i] = {
@@ -88,150 +85,154 @@ const hvScriptSet = {
             changeList: postChangeList,
             signature: postSignature
           };
-          if (!(changedUsersId.indexOf(userId) + 1)) {
+          if (!changedUsersId.includes(userId)) {
             changedUsersId.push(userId);
           }
         }
-      }
-      let checkAccess = changedUsersId.length > 0 ? getAccess(changedUsersId) : {};
-      for (let _i in changedPosts) {
-        if (changedPosts.hasOwnProperty(_i)) {
-          changedPosts[_i].username = checkAccess[changedPosts[_i].userId].username;
-          changedPosts[_i].groupId = checkAccess[changedPosts[_i].userId].groupId;
-          changedPosts[_i].groupTitle = checkAccess[changedPosts[_i].userId].groupTitle;
-          changedPosts[_i].access = checkAccess[changedPosts[_i].userId].access;
+      })
+      let checkAccess = getAccess(changedUsersId);
+      Object.entries(changedPosts).forEach(([index, post]) => {
+        post.username = checkAccess[post.userId].username;
+        post.groupId = checkAccess[post.userId].groupId;
+        post.groupTitle = checkAccess[post.userId].groupTitle;
+        post.access = checkAccess[post.userId].access;
 
-          if (changedPosts[_i].changeList.avatar && changedPosts[_i].access.common) {
-            if (!changedPosts[_i].profile.querySelector('.pa-avatar img')) {
-              let fieldIndex = userFields.indexOf('pa-avatar');
-              let block = document.createElement('li');
-              block.className = 'pa-avatar';
-              block.innerHTML = `<img src="" title="${changedPosts[_i].username}">`;
-              for (let index = ++fieldIndex; index <= userFields.length; index++) {
-                let nextSibling = changedPosts[_i].profile.querySelector('.' + userFields[index]);
-                if (nextSibling) {
-                  let parent = nextSibling.parentNode;
-                  parent.insertBefore(block, nextSibling);
-                  break;
-                }
-                if (index === userFields.length) {
-                  changedPosts[_i].profile.appendChild(block);
-                }
-              }
-            }
-            let avatar = changedPosts[_i].profile.querySelector(`.pa-avatar img[title]`)
-              || changedPosts[_i].profile.querySelector(`.pa-avatar img[alt]`)
-              || changedPosts[_i].profile.querySelector(`.pa-avatar img`);
-            avatar.src = changedPosts[_i].changeList.avatar.content;
-            avatar.removeAttribute('width');
-            avatar.removeAttribute('height');
-          }
-        }
-        if (changedPosts.hasOwnProperty(_i) && changedPosts[_i].access.extended) {
-          let thisChanges = changedPosts[_i].changeList;
-          for (let change in thisChanges) {
-            if (thisChanges.hasOwnProperty(change)) {
-              if (thisChanges[change].field === 'pa-author' && changedPosts[_i].userId === '1') {
-                changedPosts[_i].changeList[change].type = 'text';
-              }
-              if (change !== 'signature' && !changedPosts[_i].profile.getElementsByClassName(changedPosts[_i]
-                .changeList[change].field)[0]) {
-                let _fieldIndex = userFields.indexOf(changedPosts[_i].changeList[change].field);
-                let _block = document.createElement('li');
-                _block.className = thisChanges[change].field;
-                for (let _index = ++_fieldIndex; _index <= userFields.length; _index++) {
-                  let _nextSibling = changedPosts[_i].profile.querySelector('.' + userFields[_index]);
-                  if (_nextSibling) {
-                    let parent = _nextSibling.parentNode;
-                    parent.insertBefore(_block, _nextSibling);
-                    break;
-                  }
-                  if (_index === userFields.length) {
-                    changedPosts[_i].profile.appendChild(_block);
-                  }
-                }
-              }
-              let fieldEl = changedPosts[_i].profile.getElementsByClassName(changedPosts[_i]
-                .changeList[change].field)[0];
-              switch (changedPosts[_i].changeList[change].type) {
-                case 'html':
-                  let content = strToHtml(changedPosts[_i].changeList[change].content);
-                  if (content === '') {
-                    console.error(`Что-то не так с маской в посте #${changedPosts[_i].postId}`);
-                    if (GroupID === 1 || GroupID === 2) {
-                      let errorMess = document.getElementById('admin_msg1');
-                      errorMess.innerHTML = `Что-то не так с маской в посте #${changedPosts[_i].postId}. Он подсвечен красным.<br><i>Сообщение показано только администрации.</i>`;
-                      errorMess.style.display = 'block';
-                      errorMess.style.zIndex = 10000;
-                      document.getElementById(changedPosts[_i].postId)
-                        .style.border = 'solid 1px #f00';
-                    }
-                  }
-                  fieldEl.innerHTML = content.length > 999 ? content.slice(0, 999) : content;
-                  break;
-                case 'bbcode':
-                  let __content = changedPosts[_i].changeList[change].content;
-                  fieldEl.innerHTML = __content.length > 999 ? __content.slice(0, 999) : __content;
-                  break;
-                case 'text':
-                  let _content = changedPosts[_i].changeList[change].content
-                    .replace(/</i, '&lt').replace(/>/i, '&rt');
-                  switch (change) {
-                    case 'author':
-                      fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
-                      $(`#${changedPosts[_i].postId}`).find('.pl-quote a').attr('href', "javascript:quote('" + _content.replace(/\'/i, '\\\'') + "', " + changedPosts[_i].postId.slice(1) + ")");
-                      break;
-                    case 'title':
-                      fieldEl.innerHTML = _content.length > 50 ? _content.slice(0, 50) : _content;
-                      break;
-                    default:
-                      fieldEl.innerHTML = _content.length > 999 ? _content.slice(0, 999) : _content;
-                  }
-                  break;
-                case 'link':
-                  var linkContent = changedPosts[_i].changeList[change].content.length > 25 ?
-                    changedPosts[_i].changeList[change].content.slice(0, 25) :
-                    changedPosts[_i].changeList[change].content
-                  fieldEl.querySelector('a').innerText = linkContent;
+        if (!post.access.common) return;
 
-                  if (change === 'author') {
-                    const nickLink = fieldEl.querySelector('a');
-                    nickLink.href = nickLink.href.includes('profile')
-                      ? nickLink.href
-                      : "javascript:to('" + linkContent.replace(/\'/i, '\\\'') + "')";
-                    $('#' + changedPosts[_i].postId).find('.pl-quote a').attr('href', "javascript:quote('" + linkContent.replace(/\'/i, '\\\'') + "', " + changedPosts[_i].postId.slice(1) + ")");
-                  }
-                  break;
-                case 'signature':
-                  if (GroupID !== '3') {
-                    if (!changedPosts[_i].signature) {
-                      let signEl = document.createElement('dl');
-                      signEl.className = 'post-sig';
-                      signEl.innerHTML = `
-                        <dl class="post-sig">
-                          <dt>
-                            <span>Подпись автора</span>
-                          </dt>
-                          <dd></dd>
-                        </dl>`;
-                      changedPosts[_i].text.appendChild(signEl);
-                      changedPosts[_i].signature = signEl.querySelector('.post-sig dd');
-                    }
-                    changedPosts[_i].signature.innerHTML = changedPosts[_i].changeList[change].content;
-                  }
-                  break;
+        if (post.changeList.avatar) {
+          if (!post.profile.querySelector('.pa-avatar img')) {
+            let fieldIndex = userFields.indexOf('pa-avatar');
+            let block = document.createElement('li');
+            block.className = 'pa-avatar';
+            block.innerHTML = `<img src="" title="${post.username}">`;
+            for (let index = ++fieldIndex; index <= userFields.length; index++) {
+              let nextSibling = post.profile.querySelector('.' + userFields[index]);
+              if (nextSibling) {
+                let parent = nextSibling.parentNode;
+                parent.insertBefore(block, nextSibling);
+                break;
+              }
+              if (index === userFields.length) {
+                post.profile.appendChild(block);
               }
             }
           }
+          let avatar = post.profile.querySelector(`.pa-avatar img[title]`)
+              || post.profile.querySelector(`.pa-avatar img[alt]`)
+              || post.profile.querySelector(`.pa-avatar img`);
+          avatar.src = post.changeList.avatar.content;
+          avatar.removeAttribute('width');
+          avatar.removeAttribute('height');
         }
-        let sign = changedPosts[_i].text.innerHTML.match(/<dl class="post-sig">([\s\S]*?)?<\/dl>/);
-        changedPosts[_i].profile.classList.add('hv-mask');
 
-        const hiddenHvBlock = changedPosts[_i].text.querySelector('.hvmask');
+        if (!post.access.extended) return;
+
+        let thisChanges = post.changeList;
+
+        Object.entries(thisChanges).forEach(([changeKey, change]) => {
+          if (change.field === 'pa-author' && post.userId === '1') {
+            post.changeList[changeKey].type = 'text';
+          }
+          const postChange = post.changeList[changeKey];
+          let fieldEl = post.profile.getElementsByClassName(postChange.field)[0]
+
+          // Если у профиля нет заполненного поля, то предвставим пустое
+          if (changeKey !== 'signature' && !fieldEl) {
+            const fieldIndex = userFields.indexOf(postChange.field);
+            const block = document.createElement('li');
+                  block.className = change.field;
+
+            for (let i = fieldIndex + 1; i <= userFields.length; i++) {
+              const nextSibling = post.profile.getElementsByClassName(userFields[i]);
+              if (nextSibling) {
+                const parent = nextSibling.parentNode;
+                parent.insertBefore(block, nextSibling);
+                break;
+              }
+              if (i === userFields.length) {
+                post.profile.appendChild(block);
+              }
+            }
+            fieldEl = block;
+          }
+
+          // Заполняем профиль данными из маски
+          const postContent = post.changeList[changeKey].content;
+          switch (post.changeList[changeKey].type) {
+            case 'html': {
+              const content = strToHtml(postContent);
+              if (content === '') {
+                console.error(`Что-то не так с маской в посте #${post.postId}`);
+                let errorMess = document.getElementById('admin_msg1');
+                errorMess.innerHTML = `Что-то не так с маской в посте #${post.postId}. Он подсвечен красным.<br><i>Сообщение показано только администрации.</i>`;
+                errorMess.style.display = 'block';
+                errorMess.style.zIndex = 10000;
+                document.getElementById(post.postId)
+                    .style.border = 'solid 1px #f00';
+                break;
+              }
+              fieldEl.innerHTML = content.slice(0, 999);
+              break;
+            }
+            case 'bbcode': {
+              fieldEl.innerHTML = postContent.slice(0, 999);
+              break;
+            }
+            case 'text': {
+              const content = postContent.replace(/</i, '&lt')
+                  .replace(/>/i, '&rt');
+              switch (changeKey) {
+                case 'author':
+                  fieldEl.innerHTML = content.slice(0,25);
+                  $(`#${post.postId}`).find('.pl-quote a')
+                      .attr('href', `javascript:quote('${content.replace(/'/i, '\\\'')}', ${post.postId.slice(1)})`);
+                  break;
+                case 'title':
+                  fieldEl.innerHTML = content.slice(0, 50);
+                  break;
+                default:
+                  fieldEl.innerHTML = content.slice(0, 999);
+              }
+              break;
+            }
+            case 'link':
+              const content = postContent.slice(0, 25);
+              const nickLink = fieldEl.querySelector('a');
+              nickLink.innerText = content;
+              if (changeKey === 'author') {
+                nickLink.href = nickLink.href.includes('profile')
+                  ? nickLink.href
+                  : `javascript:to('${linkContent.replace(/'/i, '\\\'')}')`;
+                $(`#${post.postId}`).find('.pl-quote a')
+                    .attr('href', `javascript:quote('${linkContent.replace(/'/i, '\\\'')}', ${post.postId.slice(1)})`);
+              }
+              break;
+            case 'signature':
+              if (GroupID === 3) break;
+              if (!post.signature) {
+                const signEl = document.createElement('dl');
+                  signEl.className = 'post-sig';
+                signEl.innerHTML = `
+                  <dl class="post-sig">
+                    <dt>
+                      <span>Подпись автора</span>
+                    </dt>
+                    <dd></dd>
+                  </dl>`;
+                post.text.appendChild(signEl);
+                post.signature = signEl;
+              }
+              post.signature.innerHTML = post.changeList[changeKey].content;
+              break;
+          }
+        })
+        const sign = post.text.innerHTML.match(/<dl class="post-sig">([\s\S]*?)?<\/dl>/);
+        post.profile.classList.add('hv-mask');
+        const hiddenHvBlock = post.text.querySelector('.hvmask');
         if (!hiddenHvBlock) {
-          changedPosts[_i].text.innerHTML = changedPosts[_i].clearedText + (sign ? sign[0] : '');
+          post.text.innerHTML = post.clearedText + (sign ? sign[0] : '');
         }
-      }
+      })
     }
 
     function hideTags() {
@@ -300,6 +301,9 @@ const hvScriptSet = {
     }
 
     function getAccess(usersId) {
+      if (usersId.length === 0) {
+        return {}
+      }
       let userInfo = getUsersInfo(usersId);
       const forumName = getClearedForumName(FORUM.topic.forum_name);
       for (let id in userInfo) {
