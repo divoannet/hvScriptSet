@@ -7,11 +7,22 @@
  * license: MIT
  *
  * Что нового:
+ * Техническое обновление для совместимости с системным скриптом маски
  */
 
 const hvScriptSet = {
 
   addMask: function (opt) {
+
+    // Скрипт не работает, если включен системный скрипт маски
+    if (
+      window.FORUM
+      && window.FORUM.profileMask
+      && window.FORUM.profileMask.enabled
+    ) {
+      return;
+    }
+
     const changeList = {
       'author': {
         title: 'Ник',
@@ -43,6 +54,10 @@ const hvScriptSet = {
       },
       ...opt.changeList
     };
+
+    if (window.GroupID === 1) {
+      saveMaskSettings(opt);
+    }
 
     let tmpMask = {};
     let previewForm = {};
@@ -1089,6 +1104,32 @@ const hvScriptSet = {
             prevMasks = decodeURI(response.storage.data.maskListUser).split('|splitKey|');
             getMaskStorage();
           }
+        }
+      });
+    }
+
+    function saveMaskSettings(localSettings) {
+      $.ajax({
+        async: false,
+        url: '/api.php',
+        data: {
+          method: 'storage.get',
+          key: 'profileMaskSettings',
+          app_id: 16777215
+        },
+        success: function (result) {
+          if (!result.error && result.response && result.response.storage && result.response.storage.data
+              && result.response.storage.data.profileMaskSettings === JSON.stringify(localSettings)) {
+              return; // настройки уже сохранены
+          }
+
+          $.post('/api.php', {
+            method: 'storage.set',
+            token: ForumAPITicket,
+            key: 'profileMaskSettings',
+            app_id: 16777215,
+            value: JSON.stringify(localSettings)
+          })
         }
       });
     }
