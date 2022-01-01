@@ -2,12 +2,12 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.18
+ * Version: 1.0.19
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * Техническое обновление для совместимости с системным скриптом маски
+ * 1. Некоторые мелкие багфиксы
  */
 
 const hvScriptSet = {
@@ -170,7 +170,7 @@ const hvScriptSet = {
                   let content = strToHtml(changedPosts[_i].changeList[change].content);
                   if (content === '') {
                     console.error(`Что-то не так с маской в посте #${changedPosts[_i].postId}`);
-                    if (GroupID === 1 || GroupID === 2) {
+                    if (window.GroupID === 1 || window.GroupID === 2) {
                       let errorMess = document.getElementById('admin_msg1');
                       errorMess.innerHTML = `Что-то не так с маской в посте #${changedPosts[_i].postId}. Он подсвечен красным.<br><i>Сообщение показано только администрации.</i>`;
                       errorMess.style.display = 'block';
@@ -215,7 +215,7 @@ const hvScriptSet = {
                   }
                   break;
                 case 'signature':
-                  if (GroupID !== '3') {
+                  if (window.GroupID !== '3') {
                     if (!changedPosts[_i].signature) {
                       let signEl = document.createElement('dl');
                       signEl.className = 'post-sig';
@@ -313,7 +313,7 @@ const hvScriptSet = {
 
     function getAccess(usersId) {
       let userInfo = getUsersInfo(usersId);
-      const forumName = getClearedForumName(FORUM.topic.forum_name);
+      const forumName = getClearedForumName(window.FORUM.topic.forum_name);
       for (let id in userInfo) {
         if (userInfo.hasOwnProperty(id)) {
           switch (userInfo[id].groupId) {
@@ -404,8 +404,6 @@ const hvScriptSet = {
       let maskDialog = buildMaskDialog();
       let main = document.querySelector('#pun-main');
       main.appendChild(maskDialog);
-
-      getStyle();
     }
 
     function getStyle() {
@@ -452,7 +450,7 @@ const hvScriptSet = {
           if (value.length > 25) {
             errorList[field] = 'Поле [Ник] не должно содержать больше 25 символов';
           } else {
-            str = value !== '' ? value : UserLogin;
+            str = value !== '' ? value : window.UserLogin;
             delete errorList[field];
             previewForm.querySelector(`.hv-preview-${field}`).innerText = str;
           }
@@ -534,11 +532,11 @@ const hvScriptSet = {
     }
 
     function getAvatar() {
-      return UserAvatar ? UserAvatar : defaultAvatar;
+      return window.UserAvatar ? window.UserAvatar : defaultAvatar;
     }
 
     function getUserTitle() {
-      return UserTitle ? UserTitle : 'Статус';
+      return window.UserTitle ? window.UserTitle : 'Статус';
     }
 
     function addButton() {
@@ -620,7 +618,7 @@ const hvScriptSet = {
       let previewFormUser = document.createElement('input');
       previewFormUser.type = 'hidden';
       previewFormUser.name = 'form_user';
-      previewFormUser.value = UserLogin;
+      previewFormUser.value = window.UserLogin;
       let previewReqMessage = document.createElement('textarea');
       previewReqMessage.name = 'req_message';
       previewMaskForm.appendChild(previewFormSent);
@@ -841,7 +839,6 @@ const hvScriptSet = {
 
     function saveMask() {
       if (Object.keys(tmpMask).length > 0) {
-        let tempMask = JSON.stringify(tmpMask);
         if (Object.keys(prevMasks).length > 0) {
           if (!(hasMaskInStorage(prevMasks, tmpMask) + 1)) {
             if (prevMasks.length >= maskLimit) {
@@ -855,7 +852,7 @@ const hvScriptSet = {
         $.post('/api.php',
           {
             method: 'storage.set',
-            token: ForumAPITicket,
+            token: window.ForumAPITicket,
             key: 'maskListUser',
             value: encodeURI(prevMasks.join('|splitKey|'))
           }
@@ -904,7 +901,7 @@ const hvScriptSet = {
       $.post('/api.php',
         {
           method: 'storage.set',
-          token: ForumAPITicket,
+          token: window.ForumAPITicket,
           key: 'maskListUser',
           value: encodeURI(prevMasks.join('|splitKey|'))
         }
@@ -934,7 +931,7 @@ const hvScriptSet = {
           div.className = `hv-preview-${mask}`;
           switch (mask) {
             case 'author':
-              div.innerHTML = UserLogin;
+              div.innerHTML = window.UserLogin;
               previewForm.appendChild(div);
               break;
             case 'title':
@@ -1030,7 +1027,7 @@ const hvScriptSet = {
 
       tempStr = tempStr.replace(/\[img\](https?:\/\/.*?\.(?:jpg|png|jpeg|gif))\[\/img\]/gi, `<img class="postimg" src="$1" alt="$1">`);
 
-      tempStr = tempStr.replace(/\[you\]/gi, UserLogin);
+      tempStr = tempStr.replace(/\[you\]/gi, window.UserLogin);
       tempStr = tempStr.replace(/\[hr\]/gi, `<hr>`);
       tempStr = tempStr.replace(/\[sup\](.*?)\[\/sup\]/gi, `<sup>$1</sup>`);
       tempStr = tempStr.replace(/\[sub\](.*?)\[\/sub\]/gi, `<sub>$1</sub>`);
@@ -1060,25 +1057,25 @@ const hvScriptSet = {
     }
 
     function checkAccess() {
-      if (!FORUM.topic) return false;
-      if (!opt.forumAccess || GroupID === 1 || GroupID === 2) return true;
+      if (!window.FORUM.topic) return false;
+      if (!opt.forumAccess || window.GroupID === 1 || window.GroupID === 2) return true;
 
-      let forumName = getClearedForumName(FORUM.topic.forum_name);
+      let forumName = getClearedForumName(window.FORUM.topic.forum_name);
 
       return opt.forumAccess[forumName] ?
-        opt.forumAccess[forumName].includes(GroupTitle) :
+        opt.forumAccess[forumName].includes(window.GroupTitle) :
         false;
     }
 
     function checkAccessExtended() {
-      if (!FORUM.topic) return false;
-      if (GroupID === 1 || GroupID === 2) return true;
+      if (!window.FORUM.topic) return false;
+      if (window.GroupID === 1 || window.GroupID === 2) return true;
       if (!opt.forumAccessExtended) return false;
 
-      let forumName = getClearedForumName(FORUM.topic.forum_name);
+      let forumName = getClearedForumName(window.FORUM.topic.forum_name);
 
       return opt.forumAccessExtended[forumName] ?
-        opt.forumAccessExtended[forumName].includes(GroupTitle) :
+        opt.forumAccessExtended[forumName].includes(window.GroupTitle) :
         false;
     }
 
@@ -1118,7 +1115,7 @@ const hvScriptSet = {
 
           $.post('/api.php', {
             method: 'storage.set',
-            token: ForumAPITicket,
+            token: window.ForumAPITicket,
             key: 'profileMaskSettings',
             app_id: 16777215,
             value: JSON.stringify(localSettings)
@@ -1150,7 +1147,7 @@ const hvScriptSet = {
     }
 
     function getAccessByForumName() {
-      if (GroupID === 1 || GroupID === 2) return 'extended';
+      if (window.GroupID === 1 || window.GroupID === 2) return 'extended';
 
       const crumbs = document.getElementById('pun-crumbs1');
       const crumbLinks = crumbs.querySelectorAll('a[href*="viewforum"]');
@@ -1159,16 +1156,16 @@ const hvScriptSet = {
       name = getClearedForumName(name);
 
       if (opt.forumAccessExtended && opt.forumAccessExtended[name]) {
-        if (opt.forumAccessExtended[name].includes(GroupTitle)) {
+        if (opt.forumAccessExtended[name].includes(window.GroupTitle)) {
           return 'extended';
         }
       }
       if (opt.forumAccess && opt.forumAccess[name]) {
-        if (opt.forumAccess[name].includes(GroupTitle)) {
+        if (opt.forumAccess[name].includes(window.GroupTitle)) {
           return 'common';
         }
       }
-      if (!opt.forumAccess && GroupID !== 3) {
+      if (!opt.forumAccess && window.GroupID !== 3) {
         return 'common';
       }
 
@@ -1176,13 +1173,14 @@ const hvScriptSet = {
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      if (FORUM.topic) {
+      getStyle();
+      if (window.FORUM.topic) {
         getPosts();
-        if (GroupID !== 3) {
+        if (window.GroupID !== 3) {
           getDialog();
         }
-      } else if (!FORUM.topic && FORUM.editor) {
-        if (GroupID !== 3) {
+      } else if (!window.FORUM.topic && window.FORUM.editor) {
+        if (window.GroupID !== 3) {
           getDialog();
         }
         hidePreviewTags();
