@@ -2,12 +2,13 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.19
+ * Version: 1.0.20
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Некоторые мелкие багфиксы
+ * 1. Исправлен баг распознавания прав пользователя при создании новой темы
+ * 2. Исправлен баг применения маски в посте с маской в теге [code]
  */
 
 const hvScriptSet = {
@@ -204,7 +205,7 @@ const hvScriptSet = {
                   var linkContent = changedPosts[_i].changeList[change].content.length > 25 ?
                     changedPosts[_i].changeList[change].content.slice(0, 25) :
                     changedPosts[_i].changeList[change].content
-                  fieldEl.querySelector('a').innerText = linkContent;
+                  fieldEl.querySelector('a').textContent = linkContent;
 
                   if (change === 'author') {
                     const nickLink = fieldEl.querySelector('a');
@@ -285,7 +286,7 @@ const hvScriptSet = {
                 postChangeList[field] = {
                   'tag': tags[i],
                   'field': changeList[field].class,
-                  'content': text.match(pattern)[0].replace(clearPattern, ''),
+                  'content': clearedText.match(pattern)[0].replace(clearPattern, ''),
                   'type': changeList[field].type
                 };
               }
@@ -1152,7 +1153,7 @@ const hvScriptSet = {
       const crumbs = document.getElementById('pun-crumbs1');
       const crumbLinks = crumbs.querySelectorAll('a[href*="viewforum"]');
       const link = crumbLinks[crumbLinks.length-1];
-      let name = link.innerText;
+      let name = link.textContent;
       name = getClearedForumName(name);
 
       if (opt.forumAccessExtended && opt.forumAccessExtended[name]) {
