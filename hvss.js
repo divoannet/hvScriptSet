@@ -2,18 +2,24 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.20
+ * Version: 1.0.21
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Исправлен баг распознавания прав пользователя при создании новой темы
- * 2. Исправлен баг применения маски в посте с маской в теге [code]
+ * 1. Последние сохранённые маски теперь сверху списка
+ * 2. Исправлен баг сокрытия старых масок на странице поиска
+ * 3. Убрал кнопку "Вставить без сохранения". Пишите протест, если по ней скучаете
+ * 4. Появилась суперсекретная настройка disableQuote: true, которая ставит в цитаты и ответы реальный ник
  */
 
 const hvScriptSet = {
 
   addMask: function (opt) {
+    if (!opt) {
+      console.error('Настройки скрипта маски не определены');
+      return;
+    }
 
     // Скрипт не работает, если включен системный скрипт маски
     if (
@@ -71,6 +77,8 @@ const hvScriptSet = {
     const defaultAvatar = opt.defaultAvatar || 'https://i.imgur.com/bQuC3S1.png';
 
     const maskLimit = opt.maskLimit || 20;
+
+    const canQuoteMask = !opt.disableQuote;
 
     let prevMasks = [];
 
@@ -192,6 +200,7 @@ const hvScriptSet = {
                   switch (change) {
                     case 'author':
                       fieldEl.innerHTML = _content.length > 25 ? _content.slice(0, 25) : _content;
+                      if (!canQuoteMask) break;
                       $(`#${changedPosts[_i].postId}`).find('.pl-quote a').attr('href', "javascript:quote('" + _content.replace(/\'/i, '\\\'') + "', " + changedPosts[_i].postId.slice(1) + ")");
                       break;
                     case 'title':
@@ -207,7 +216,7 @@ const hvScriptSet = {
                     changedPosts[_i].changeList[change].content
                   fieldEl.querySelector('a').textContent = linkContent;
 
-                  if (change === 'author') {
+                  if (change === 'author' && canQuoteMask) {
                     const nickLink = fieldEl.querySelector('a');
                     nickLink.href = nickLink.href.includes('profile')
                       ? nickLink.href
@@ -255,7 +264,7 @@ const hvScriptSet = {
         const text = post.querySelector('.post-content');
         allTagsList.forEach(tag => {
           let pattern =
-              new RegExp('\\[' + allTagsList[tag] + '\\](.*?)\\[\/' + allTagsList[tag] + '\\]', 'gi');
+              new RegExp('\\[' + tag + '\\](.*?)\\[\/' + tag + '\\]', 'gi');
           text.innerHTML = text.innerHTML.replace(pattern, '');
         })
       })
@@ -735,13 +744,6 @@ const hvScriptSet = {
       okButton.value = 'Вставить маску';
       okButton.addEventListener('click', saveMask);
 
-      let insertButton = document.createElement('input');
-      insertButton.type = 'button';
-      insertButton.className = 'button';
-      insertButton.name = 'insertMask';
-      insertButton.value = 'Вставить без сохранения';
-      insertButton.addEventListener('click', insertMask);
-
       let clearButton = document.createElement('input');
       clearButton.type = 'button';
       clearButton.className = 'button';
@@ -759,7 +761,6 @@ const hvScriptSet = {
       let control = document.createElement('div');
       control.className = 'hv-control';
       control.appendChild(okButton);
-      control.appendChild(insertButton);
       control.appendChild(clearButton);
       control.appendChild(cancelButton);
 
@@ -823,7 +824,7 @@ const hvScriptSet = {
         maskStore.appendChild(li);
       };
 
-      for (let mask = 0; mask < prevMasks.length; mask++) {
+      for (let mask = prevMasks.length - 1; mask >= 0; mask--) {
         _loop2(mask);
       }
     }
