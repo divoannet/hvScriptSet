@@ -2,18 +2,17 @@
 
 /**
  * hvScriptSet
- * Version: 1.0.21
+ * Version: 1.0.22
  * Author: Человек-Шаман
  * license: MIT
  *
  * Что нового:
- * 1. Последние сохранённые маски теперь сверху списка
- * 2. Исправлен баг сокрытия старых масок на странице поиска
- * 3. Убрал кнопку "Вставить без сохранения". Пишите протест, если по ней скучаете
- * 4. Появилась суперсекретная настройка disableQuote: true, которая ставит в цитаты и ответы реальный ник
+ * 1. При удалении маски требуется подтверждение намерений
  */
 
 const hvScriptSet = {
+
+  data: {},
 
   addMask: function (opt) {
     if (!opt) {
@@ -29,6 +28,8 @@ const hvScriptSet = {
     ) {
       return;
     }
+
+    const that = this;
 
     const changeList = {
       'author': {
@@ -61,6 +62,7 @@ const hvScriptSet = {
       },
       ...opt.changeList
     };
+    that.data.changeList = changeList;
 
     if (window.GroupID === 1) {
       saveMaskSettings(opt);
@@ -115,6 +117,9 @@ const hvScriptSet = {
         }
       }
       let checkAccess = changedUsersId.length > 0 ? getAccess(changedUsersId) : {};
+
+      that.data.changedPosts = changedPosts;
+
       for (let _i in changedPosts) {
         if (changedPosts.hasOwnProperty(_i)) {
           changedPosts[_i].username = checkAccess[changedPosts[_i].userId].username;
@@ -744,6 +749,13 @@ const hvScriptSet = {
       okButton.value = 'Вставить маску';
       okButton.addEventListener('click', saveMask);
 
+      let insertButton = document.createElement('input');
+      insertButton.type = 'button';
+      insertButton.className = 'button';
+      insertButton.name = 'insertMask';
+      insertButton.value = 'Вставить без сохранения';
+      insertButton.addEventListener('click', insertMask);
+
       let clearButton = document.createElement('input');
       clearButton.type = 'button';
       clearButton.className = 'button';
@@ -761,6 +773,7 @@ const hvScriptSet = {
       let control = document.createElement('div');
       control.className = 'hv-control';
       control.appendChild(okButton);
+      control.appendChild(insertButton);
       control.appendChild(clearButton);
       control.appendChild(cancelButton);
 
@@ -896,6 +909,10 @@ const hvScriptSet = {
     }
 
     function deleteMaskFromStorage(mask, li) {
+      const isConfirmed = confirm('Точно удалить маску?');
+
+      if (!isConfirmed) return;
+
       if ($(li).tipsy('getTitle')) {
         $(li).tipsy('hide');
       }
